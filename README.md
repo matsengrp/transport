@@ -19,7 +19,5 @@ For stoat, running
 ```
 jupyter notebook --no-browser --port=8889 --ip=0.0.0.0
 ```
-and copying the URL that is output into your browser (e.g. `http://stoat.8891/?token=LONG_STRING_OF_NUMBERS`) should do the trick.
-
-should do the trick if you're conncted to Marconi.
+and copying the URL that is output into your browser (e.g. `http://stoat.8891/?token=LONG_STRING_OF_NUMBERS`) should do the trick if you're conncted to Marconi.
 (I haven't figured out how to interact with a jupyter notebook remotely through the VPN.)
