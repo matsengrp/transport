@@ -16,7 +16,7 @@ import sys
 import random
 
 ## this is the tcrdist-computing executable
-exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+exe = '/loc/no-backup/pbradley/share/pot_data/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
 db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'

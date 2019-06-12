@@ -14,7 +14,6 @@ from os.path import exists
 import sys
 import random
 
-basedir = '/home/pbradley/csdat/yfv/pogorelyy_et_al_2018/Yellow_fever/'
 
 
 if 1: # make tree from sinkhorns
@@ -100,6 +99,8 @@ if 1: # make tree from sinkhorns
 
 if 0: # setup for running on cluster to compute the sinkhorns: make a long list of commands in a text file
     #
+    # this part is specialized to my (PB) setup for running on the cluster...
+    #
     import random
     from os.path import exists
     from sys import exit
@@ -108,6 +109,7 @@ if 0: # setup for running on cluster to compute the sinkhorns: make a long list 
     script = '/home/pbradley/tcr_scripts/find_lonely_yfv_tcrs.py'
 
     # this was run where the tcrs files existed, won't generalize to new transport repo but FWIW
+    basedir = '/home/pbradley/csdat/yfv/pogorelyy_et_al_2018/Yellow_fever/'
     files = glob('{}[PQS][12]*F[12]*tcrs'.format(basedir))
 
     outdir = '{}run1_output/'.format(basedir)
@@ -186,15 +188,14 @@ if 0: # process the raw yfv data from pogo github to make .tcrs files
 ##
 
 ## this is the tcrdist-computing executable
-exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+#exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+exe = '/loc/no-backup/pbradley/share/pot_data/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
 #db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
-db = '/home/pbradley/gitrepos/pubtcrs/db' # human
+exe = '/loc/no-backup/pbradley/share/pot_data/db'
 
 ## these are the two tcrs files
-#file1 = basedir+'P1_0_F1_.txt.top1000.tcrs'
-#file2 = basedir+'P1_0_F2_.txt.top1000.tcrs'
 
 file1 = sys.argv[1]
 file2 = sys.argv[2]

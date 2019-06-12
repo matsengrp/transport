@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import gaussian_kde
 
-rundir = '/home/pbradley/csdat/yfv/pogorelyy_et_al_2018/Yellow_fever/run1_output/'
+rundir = '/loc/no-backup/pbradley/share/pot_data/yfv/'
 
 # files look like:
-# /home/pbradley/csdat/yfv/pogorelyy_et_al_2018/Yellow_fever/run1_output/Q1_0_F1_.txt.top1000.tcrs_vs_Q1_0_F2_.txt.top1000.tcrs.txt
+# Q1_0_F1_.txt.top1000.tcrs_vs_Q1_0_F2_.txt.top1000.tcrs.txt
 files = glob('{}*_vs_*.txt'.format(rundir))
 
 

@@ -19,7 +19,7 @@ import sys
 import random
 
 ## this is the tcrdist-computing executable
-exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+exe = '/loc/no-backup/pbradley/share/pot_data/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
 db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
@@ -36,10 +36,10 @@ Dmax = 200 # constant across comparisons
 # then run it again with step=2 to make the tree
 #
 step = 2
-step1_logfile = 'ot_dists_iels.txt' # wherever you put the output from step 1
+step1_logfile = 'results/iels/ot_dists_iels.txt' # wherever you put the output from step 1
 
 # this is the name of the pngfile to be generated:
-tree_pngfile = 'IELrep_OT_mouse_trees.png'
+tree_pngfile = 'results/iels/IELrep_OT_mouse_trees.png'
 
 def get_raw_distance_matrix( f1, f2 ):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
