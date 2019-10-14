@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import gaussian_kde
 
-rundir = '/loc/no-backup/pbradley/share/pot_data/yfv/'
+rundir = 'data/yfv_raw/' #'/loc/no-backup/pbradley/share/pot_data/yfv/'
 
 # files look like:
 # Q1_0_F1_.txt.top1000.tcrs_vs_Q1_0_F2_.txt.top1000.tcrs.txt
@@ -39,7 +39,6 @@ for file in files:
     for line in popen('grep ^f1_ind ' + file ):
         l = line.split()
         all_vals[selfcomp].append( ( float(l[3]), float(l[5]) ) )
-
 
 plt.figure(1,figsize=(12,12))
 
