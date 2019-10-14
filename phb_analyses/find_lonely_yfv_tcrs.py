@@ -14,9 +14,11 @@ from os.path import exists
 import sys
 import random
 
+import matplotlib
+matplotlib.use('agg')
 
-
-if 1: # make tree from sinkhorns
+make_tree_from_sinkhorns = True
+if make_tree_from_sinkhorns: # make tree from sinkhorns
 
     logfile = 'results/yfv/all_sinkhorns.txt'
 
