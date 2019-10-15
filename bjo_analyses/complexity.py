@@ -1,18 +1,10 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 import random
 
-def plot_clonotype_empirical_distribution(filename):
-    clone_df = pd.read_csv(filename, sep="\t")
-    clone_sizes = clone_df['clone_size']
-    _ = plt.hist(clone_sizes, bins='auto')
-    plt.show()
-
 def compute_runtimes(dist_mat_filename):
     pass
-
 
 if __name__ == "__main__":
     dist_mat_filename = "Data/all_IELrep_beta_distances.txt"
