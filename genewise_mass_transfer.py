@@ -41,9 +41,14 @@ if __name__ == "__main__":
 
     ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
-    same_v_gene = np.zeros((N1, N2))
+    gene_transfer_map = {}
     for i in range(0, N1):
         for j in range(0, N2):
-            if df_1.iloc[i, 0] == df_2.iloc[j, 0]:
-                same_v_gene[i, j] = 1
-    print(same_v_gene.mean())
+            gene_i = df_1.iloc[i, 0]
+            gene_j = df_2.iloc[j, 0]
+            if gene_i not in gene_transfer_map:
+                gene_transfer_map[gene_i] = {}
+            if gene_j not in gene_transfer_map[gene_i]:
+                gene_transfer_map[gene_i][gene_j] = 0
+            # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
+            gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
