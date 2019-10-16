@@ -10,10 +10,10 @@ from phb_analyses.find_lonely_iels import (
     lambd,
 )
 
-def collapse_allele(gene:str):
+def collapse_allele(gene: str):
     return re.sub("\*[0-9]+", "", gene)
 
-def collapse_gene_subfamily(gene:str):
+def collapse_gene_subfamily(gene: str):
     return re.sub("\-[0-9]+", "", collapse_allele(gene))
 
 def get_df_from_file(filename, collapse_by_allele=True, collapse_by_subfamily=True):
@@ -44,6 +44,6 @@ if __name__ == "__main__":
     same_v_gene = np.zeros((N1, N2))
     for i in range(0, N1):
         for j in range(0, N2):
-            if df_1.iloc[i, 0] == df_2.iloc[i, 0]:
+            if df_1.iloc[i, 0] == df_2.iloc[j, 0]:
                 same_v_gene[i, j] = 1
     print(same_v_gene.mean())
