@@ -1,5 +1,6 @@
 import numpy as np
 import ot
+import pandas as pd
 import re
 
 from phb_analyses.find_lonely_iels import (
@@ -34,7 +35,12 @@ def tabulate_gene_frequencies(gene_list, as_probability=True):
         frequency_dict = {gene: gene_list.count(gene) for gene in unique_genes}
     return frequency_dict
 
-import pandas as pd
+def get_gene_weighted_mass_distribution(df):
+    gene_freqs =  tabulate_gene_frequencies(list(df['v_gene']), as_probability=False)
+    num_genes = len(gene_freqs)
+    mass_distribution = [1/(num_genes*gene_freqs[gene]) for gene in df['v_gene']]
+    return mass_distribution
+
 if __name__ == "__main__":
     file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" #"tmptcrs_dir/tmptcrs.0.009219549909406655_f1_tcrs_subset.txt"
     file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  #"tmptcrs_dir/tmptcrs.0.009219549909406655_f2_tcrs_subset.txt"
@@ -44,12 +50,20 @@ if __name__ == "__main__":
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    mass_1 = np.ones((N1, ))/N1
-    mass_2 = np.ones((N2, ))/N2
-    dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
-
     gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
     gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
+
+    
+    weight_by_v_genes = True
+    if weight_by_v_genes:
+        mass_1 = get_gene_weighted_mass_distribution(df_1)
+        mass_2 = get_gene_weighted_mass_distribution(df_2)
+    else:
+        mass_1 = np.ones((N1, ))/N1
+        mass_2 = np.ones((N2, ))/N2
+
+    dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
+
 
     ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
