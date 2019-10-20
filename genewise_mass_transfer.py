@@ -89,7 +89,7 @@ if __name__ == "__main__":
             gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
     scores = {}
     scores_min = {}
-    for gene in aene_transfer_map:
+    for gene in gene_transfer_map:
         scores[gene] = gene_transfer_map[gene][gene]/(gene_mass_dict_1[gene]*gene_mass_dict_2[gene])
         scores_min[gene] = gene_transfer_map[gene][gene]/min(gene_mass_dict_1[gene], gene_mass_dict_2[gene])
     import pdb; pdb.set_trace()
