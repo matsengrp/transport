@@ -50,17 +50,26 @@ if __name__ == "__main__":
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
-    gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
 
     
     weight_by_v_genes = True
     if weight_by_v_genes:
         mass_1 = get_gene_weighted_mass_distribution(df_1)
         mass_2 = get_gene_weighted_mass_distribution(df_2)
+
+        def get_gene_masses(gene_list):
+            unique_genes = list(set(gene_list))
+            gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
+            return gene_mass_dict
+
+        gene_mass_dict_1 = get_gene_masses(df_1['v_gene'])
+        gene_mass_dict_2 = get_gene_masses(df_2['v_gene'])
     else:
         mass_1 = np.ones((N1, ))/N1
         mass_2 = np.ones((N2, ))/N2
+
+        gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
+        gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
 
     dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
@@ -80,7 +89,7 @@ if __name__ == "__main__":
             gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
     scores = {}
     scores_min = {}
-    for gene in gene_transfer_map:
+    for gene in aene_transfer_map:
         scores[gene] = gene_transfer_map[gene][gene]/(gene_mass_dict_1[gene]*gene_mass_dict_2[gene])
         scores_min[gene] = gene_transfer_map[gene][gene]/min(gene_mass_dict_1[gene], gene_mass_dict_2[gene])
     import pdb; pdb.set_trace()
