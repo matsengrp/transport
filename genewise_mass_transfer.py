@@ -1,15 +1,31 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import ot
 import pandas as pd
 import re
+import seaborn as sns; sns.set()
+from os import popen
 
-from phb_analyses.find_lonely_iels import (
-    db,
-    Dmax, 
-    exe,
-    get_raw_distance_matrix,
-    lambd,
-)
+exe = 'bin/tcrdists'
+db = 'data/db'
+Dmax = 200 # constant across comparisons
+lambd = .01
+
+def get_raw_distance_matrix( f1, f2 ):
+    cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
+    print(cmd)
+    all_dists = []
+    for line in popen(cmd):
+        all_dists.append( [float(x) for x in line.split() ] )
+    N1 = len(all_dists)
+    N2 = len(all_dists[0])
+    for dists in all_dists:
+        assert len(dists) == N2
+
+    D = np.array(all_dists)
+    print('loaded dists',D.shape)
+    return D
+
 
 def collapse_allele(gene: str):
     return re.sub("\*[0-9]+", "", gene)
@@ -17,7 +33,7 @@ def collapse_allele(gene: str):
 def collapse_gene_subfamily(gene: str):
     return re.sub("\-[0-9]+", "", collapse_allele(gene))
 
-def get_df_from_file(filename, collapse_by_allele=True, collapse_by_subfamily=False):
+def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=False):
     df = pd.read_csv(filename, header=None)
     df.columns = ('v_gene', 'cdr3')
     if collapse_by_subfamily:
@@ -41,55 +57,145 @@ def get_gene_weighted_mass_distribution(df):
     mass_distribution = [1/(num_genes*gene_freqs[gene]) for gene in df['v_gene']]
     return mass_distribution
 
+def collapse_duplicates(v):
+    starting_indices = [0]
+    for i in range(1, len(v)):
+        if v[i] != v[i - 1]:
+            starting_indices.append(i)
+    return starting_indices
+         
+
+
+def get_gene_distance_matrix(filename, collapse_alleles=False):
+    df = pd.read_csv(filename, header=None, sep=" ")
+
+
+    gene_names = df.iloc[:, 1].values
+    df = df.drop(columns=[0, 1])
+
+    if collapse_alleles:
+        gene_names = [collapse_allele(gene_name[0]) for gene_name in gene_names]
+        indices = collapse_duplicates(gene_names)
+        df = df.iloc[indices, indices]
+        df.columns = [gene_names[i] for i in indices]
+    else:
+        df.columns = gene_names
+
+    df.index = df.columns
+
+    return df
+
 if __name__ == "__main__":
-    file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" #"tmptcrs_dir/tmptcrs.0.009219549909406655_f1_tcrs_subset.txt"
-    file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  #"tmptcrs_dir/tmptcrs.0.009219549909406655_f2_tcrs_subset.txt"
+    va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
+    vb_mat = get_gene_distance_matrix("data/gene_dist_matrices/vb_dist.txt")
+
+    results_dir = "results/gene_transfer/"
+    do_full = False
+    if do_full:
+        file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" 
+        file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
+    else:
+        file1 = "data/yfv/P1_0_F1_.txt.top1000.tcrs"
+        file2 = "data/yfv/P1_0_F2_.txt.top1000.tcrs"
+        #file1 = "tmptcrs_dir/tmptcrs.0.009219549909406655_f1_tcrs_subset.txt"
+        #file2 = "tmptcrs_dir/tmptcrs.0.009219549909406655_f2_tcrs_subset.txt"
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
+    plt.figure(figsize=[15, 10])
+    plt.subplots_adjust(hspace=0.5)
 
-    
-    weight_by_v_genes = True
-    if weight_by_v_genes:
-        mass_1 = get_gene_weighted_mass_distribution(df_1)
-        mass_2 = get_gene_weighted_mass_distribution(df_2)
+    plot_index = 1
+    for distribution_type in ["inverse_to_v_gene"]:
+        if distribution_type == "inverse_to_v_gene":
+            mass_1 = get_gene_weighted_mass_distribution(df_1)
+            mass_2 = get_gene_weighted_mass_distribution(df_2)
 
-        def get_gene_masses(gene_list):
-            unique_genes = list(set(gene_list))
-            gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
-            return gene_mass_dict
+            def get_gene_masses(gene_list):
+                unique_genes = list(set(gene_list))
+                gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
+                return gene_mass_dict
 
-        gene_mass_dict_1 = get_gene_masses(df_1['v_gene'])
-        gene_mass_dict_2 = get_gene_masses(df_2['v_gene'])
-    else:
-        mass_1 = np.ones((N1, ))/N1
-        mass_2 = np.ones((N2, ))/N2
+            gene_mass_dict_1 = get_gene_masses(df_1['v_gene'])
+            gene_mass_dict_2 = get_gene_masses(df_2['v_gene'])
+        elif distribution_type == "uniform":
+            mass_1 = np.ones((N1, ))/N1
+            mass_2 = np.ones((N2, ))/N2
 
-        gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
-        gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
+            gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
+            gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
+        else:
+            raise Exception("Unsupported distribution_type")
 
-    dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
+        dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
 
-    ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
+        for lambd in [0.01, 0.1]:
+            ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
-    gene_transfer_map = {}
-    for i in range(0, N1):
-        for j in range(0, N2):
-            gene_i = df_1.iloc[i, 0]
-            gene_j = df_2.iloc[j, 0]
-            if gene_i not in gene_transfer_map:
-                gene_transfer_map[gene_i] = {}
-            if gene_j not in gene_transfer_map[gene_i]:
-                gene_transfer_map[gene_i][gene_j] = 0
-            # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
-            gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
-    scores = {}
-    scores_min = {}
-    for gene in gene_transfer_map:
-        scores[gene] = gene_transfer_map[gene][gene]/(gene_mass_dict_1[gene]*gene_mass_dict_2[gene])
-        scores_min[gene] = gene_transfer_map[gene][gene]/min(gene_mass_dict_1[gene], gene_mass_dict_2[gene])
-    import pdb; pdb.set_trace()
+            gene_transfer_map = {}
+            for i in range(0, N1):
+                for j in range(0, N2):
+                    gene_i = df_1.iloc[i, 0]
+                    gene_j = df_2.iloc[j, 0]
+                    if gene_i not in gene_transfer_map:
+                        gene_transfer_map[gene_i] = {}
+                    if gene_j not in gene_transfer_map[gene_i]:
+                        gene_transfer_map[gene_i][gene_j] = 0
+                    # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
+                    gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
+                    if gene_j == "TRBV5-7":
+                        import pdb; pdb.set_trace()
+            scores = {}
+            scores_min = {}
+
+            gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
+            if False:
+                #gene_transfer_matrix = gene_transfer_matrix[gene_transfer_matrix.index]
+                transfer_plt = sns.clustermap(gene_transfer_matrix)
+                transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
+
+            # Get distance matrix corresponding entrywise to gene_transfer_matrix 
+            vb_mat_sub = vb_mat.loc[gene_transfer_matrix.index, gene_transfer_matrix.columns]
+
+            xs = []
+            ys = []
+            zs = []
+            colors = []
+            for i in range(0, vb_mat_sub.shape[0]):
+                for j in range(0, vb_mat_sub.shape[1]):
+                    ys.append(vb_mat_sub.iloc[i, j])
+                    zs.append(gene_transfer_matrix.iloc[i, j])
+                    colors.append(vb_mat_sub.index[i])
+
+            
+            row_gene_factors = pd.factorize(gene_transfer_matrix.index)
+            column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
+            cmap = plt.cm.Spectral
+            norm = plt.Normalize(
+                    vmin=np.min(row_gene_factors[0]), 
+                    vmax=max(row_gene_factors[0])
+            )
+
+            plt.subplot(2, 2, plot_index)
+            plt.scatter(ys, zs, c=cmap(norm(pd.factorize(colors)[0])))
+            axes = plt.gca()
+            axes.set_xlim(-3, 73)
+            axes.set_ylim([np.min(zs), np.max(zs)])
+            plt.xlabel("Distance between VB genes")
+            plt.ylabel("Cumulative transport")
+            plt.title("Cumulative transport versus gene distance for lambda = " + str(lambd))
+
+            plt.subplot(2, 2, plot_index + 1)
+            plt.scatter(ys, np.log(zs), c=cmap(norm(pd.factorize(colors)[0])))
+            axes = plt.gca()
+            axes.set_xlim(-3, 73)
+            plt.xlabel("Distance between VB genes")
+            plt.ylabel("log(Cumulative transport)")
+            plt.title("log(Cumulative transport) versus gene distance for lambda = " + str(lambd))
+            plot_index += 2
+
+    plt.savefig(results_dir + "scatterplot_grid.png")
