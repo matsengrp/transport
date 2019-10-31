@@ -26,7 +26,6 @@ def get_raw_distance_matrix( f1, f2 ):
     print('loaded dists',D.shape)
     return D
 
-
 def collapse_allele(gene: str):
     return re.sub("\*[0-9]+", "", gene)
 
@@ -63,13 +62,9 @@ def collapse_duplicates(v):
         if v[i] != v[i - 1]:
             starting_indices.append(i)
     return starting_indices
-         
-
 
 def get_gene_distance_matrix(filename, collapse_alleles=False):
     df = pd.read_csv(filename, header=None, sep=" ")
-
-
     gene_names = df.iloc[:, 1].values
     df = df.drop(columns=[0, 1])
 
@@ -82,8 +77,14 @@ def get_gene_distance_matrix(filename, collapse_alleles=False):
         df.columns = gene_names
 
     df.index = df.columns
-
     return df
+
+def get_ordered_clustermap(mat, order_by="row"):
+    clustermap = sns.clustermap(mat)
+    indices = clustermap.dendrogram_row.reordered_ind if order_by == "row" else clustermap.dendrogram_col.reordered_ind
+    plt.close('all')
+    new_clustermap = sns.heatmap(mat.loc[mat.index[indices], mat.index[indices]], xticklabels=True, yticklabels=True)
+    return new_clustermap
 
 if __name__ == "__main__":
     va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
@@ -96,9 +97,7 @@ if __name__ == "__main__":
         file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
     else:
         file1 = "data/yfv/P1_0_F1_.txt.top1000.tcrs"
-        file2 = "data/yfv/P1_0_F2_.txt.top1000.tcrs"
-        #file1 = "tmptcrs_dir/tmptcrs.0.009219549909406655_f1_tcrs_subset.txt"
-        #file2 = "tmptcrs_dir/tmptcrs.0.009219549909406655_f2_tcrs_subset.txt"
+        file2 = "data/yfv/Q1_0_F1_.txt.top1000.tcrs"
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
@@ -109,6 +108,8 @@ if __name__ == "__main__":
     plt.subplots_adjust(hspace=0.5)
 
     plot_index = 1
+    score_matrices = {}
+    gene_transfer_matrices = {}
     for distribution_type in ["inverse_to_v_gene"]:
         if distribution_type == "inverse_to_v_gene":
             mass_1 = get_gene_weighted_mass_distribution(df_1)
@@ -132,7 +133,6 @@ if __name__ == "__main__":
 
         dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
-
         for lambd in [0.01, 0.1]:
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
@@ -147,31 +147,34 @@ if __name__ == "__main__":
                         gene_transfer_map[gene_i][gene_j] = 0
                     # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
                     gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
-                    if gene_j == "TRBV5-7":
-                        import pdb; pdb.set_trace()
-            scores = {}
-            scores_min = {}
 
             gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
-            if False:
-                #gene_transfer_matrix = gene_transfer_matrix[gene_transfer_matrix.index]
-                transfer_plt = sns.clustermap(gene_transfer_matrix)
-                transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
+            gene_transfer_matrices[lambd] = gene_transfer_matrix
+
 
             # Get distance matrix corresponding entrywise to gene_transfer_matrix 
             vb_mat_sub = vb_mat.loc[gene_transfer_matrix.index, gene_transfer_matrix.columns]
 
-            xs = []
-            ys = []
-            zs = []
-            colors = []
+            vb_distances = []
+            transports = []
+            row_colors = []
+            column_colors = []
+            scores = {}
             for i in range(0, vb_mat_sub.shape[0]):
+                row_gene = vb_mat_sub.index[i]
+                scores[row_gene] = {}
                 for j in range(0, vb_mat_sub.shape[1]):
-                    ys.append(vb_mat_sub.iloc[i, j])
-                    zs.append(gene_transfer_matrix.iloc[i, j])
-                    colors.append(vb_mat_sub.index[i])
+                    column_gene = vb_mat_sub.columns[j]
+                    vb_dist_ij = vb_mat_sub.iloc[i, j]
+                    transport_ij = gene_transfer_matrix.iloc[i, j]
+                    vb_distances.append(vb_dist_ij)
+                    transports.append(transport_ij)
+                    row_colors.append(row_gene)
+                    column_colors.append(column_gene)
+                    scores[row_gene][column_gene] = transport_ij*vb_dist_ij
 
-            
+            score_matrices[lambd] = pd.DataFrame(scores)
+
             row_gene_factors = pd.factorize(gene_transfer_matrix.index)
             column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
             cmap = plt.cm.Spectral
@@ -180,22 +183,37 @@ if __name__ == "__main__":
                     vmax=max(row_gene_factors[0])
             )
 
+            colors = column_colors
             plt.subplot(2, 2, plot_index)
-            plt.scatter(ys, zs, c=cmap(norm(pd.factorize(colors)[0])))
+            plt.scatter(vb_distances, transports, c=cmap(norm(pd.factorize(colors)[0])))
             axes = plt.gca()
             axes.set_xlim(-3, 73)
-            axes.set_ylim([np.min(zs), np.max(zs)])
+            axes.set_ylim([np.min(transports), np.max(transports)])
             plt.xlabel("Distance between VB genes")
             plt.ylabel("Cumulative transport")
             plt.title("Cumulative transport versus gene distance for lambda = " + str(lambd))
 
             plt.subplot(2, 2, plot_index + 1)
-            plt.scatter(ys, np.log(zs), c=cmap(norm(pd.factorize(colors)[0])))
+            plt.scatter(vb_distances, np.log(transports), c=cmap(norm(pd.factorize(colors)[0])))
             axes = plt.gca()
             axes.set_xlim(-3, 73)
             plt.xlabel("Distance between VB genes")
             plt.ylabel("log(Cumulative transport)")
             plt.title("log(Cumulative transport) versus gene distance for lambda = " + str(lambd))
             plot_index += 2
-
+    
     plt.savefig(results_dir + "scatterplot_grid.png")
+
+    for lambd in score_matrices:
+        score_plt = sns.clustermap(score_matrices[lambd], xticklabels=True, yticklabels=True)
+        score_plt.savefig(results_dir + "score_" + str(lambd) + ".png")
+
+    for lambd in score_matrices:
+        transfer_plt = get_ordered_clustermap(gene_transfer_matrix)
+        fig = transfer_plt.get_figure()
+        fig.savefig(results_dir + "gene_transfer_" + str(lambd) + ".png")
+        plt.close()
+        #gene_transfer_matrix = gene_transfer_matrix[gene_transfer_matrix.index]
+        transfer_plt = sns.clustermap(gene_transfer_matrix, xticklabels=True, yticklabels=True)
+        transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
+
