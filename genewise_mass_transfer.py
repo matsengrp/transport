@@ -106,6 +106,26 @@ def plot_distance_versus_transport(vb_distances, transports, colors, filename):
     
     plt.savefig(filename)
 
+def get_mass_objects(df, distribution_type):
+    if distribution_type == "inverse_to_v_gene":
+        def get_gene_masses(gene_list):
+            unique_genes = list(set(gene_list))
+            gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
+            return gene_mass_dict
+
+        mass = get_gene_weighted_mass_distribution(df)
+        gene_mass_dict = get_gene_masses(df['v_gene'])
+    elif distribution_type == "uniform":
+        N = df.shape[0]
+        mass = np.ones((N, ))/N
+        gene_mass_dict = tabulate_gene_frequencies(list(df['v_gene']))
+    else:
+        raise Exception("Unsupported distribution_type")
+    return (mass, gene_mass_dict)
+
+def do_bootstrap_trial(df_1, df_2):
+    df_1_boot = df_1.sample(df_1.shape[0])
+
 if __name__ == "__main__":
     va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
     vb_mat = get_gene_distance_matrix("data/gene_dist_matrices/vb_dist.txt")
@@ -127,25 +147,8 @@ if __name__ == "__main__":
     score_matrices = {}
     gene_transfer_matrices = {}
     for distribution_type in ["inverse_to_v_gene"]:
-        if distribution_type == "inverse_to_v_gene":
-            mass_1 = get_gene_weighted_mass_distribution(df_1)
-            mass_2 = get_gene_weighted_mass_distribution(df_2)
-
-            def get_gene_masses(gene_list):
-                unique_genes = list(set(gene_list))
-                gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
-                return gene_mass_dict
-
-            gene_mass_dict_1 = get_gene_masses(df_1['v_gene'])
-            gene_mass_dict_2 = get_gene_masses(df_2['v_gene'])
-        elif distribution_type == "uniform":
-            mass_1 = np.ones((N1, ))/N1
-            mass_2 = np.ones((N2, ))/N2
-
-            gene_mass_dict_1 = tabulate_gene_frequencies(list(df_1['v_gene']))
-            gene_mass_dict_2 = tabulate_gene_frequencies(list(df_2['v_gene']))
-        else:
-            raise Exception("Unsupported distribution_type")
+        mass_1, gene_mass_dict_1 = get_mass_objects(df_1, distribution_type)
+        mass_2, gene_mass_dict_2 = get_mass_objects(df_2, distribution_type)
 
         dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
@@ -196,8 +199,13 @@ if __name__ == "__main__":
                     column_colors.append(column_gene)
                     scores[row_gene][column_gene] = transport_ij*vb_dist_ij
 
-            score_matrices[lambd] = pd.DataFrame(scores)
+            score_matrix = pd.DataFrame(scores)
+            score_matrices[lambd] = score_matrix
+            obs_gene_scores = dict(score_matrix.sum(axis=1))
             plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png")
+
+            trial_count = 10
+
 
     for lambd in score_matrices:
         score_plt = sns.clustermap(score_matrices[lambd], xticklabels=True, yticklabels=True)
