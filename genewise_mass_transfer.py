@@ -86,6 +86,26 @@ def get_ordered_clustermap(mat, order_by="row"):
     new_clustermap = sns.heatmap(mat.loc[mat.index[indices], mat.index[indices]], xticklabels=True, yticklabels=True)
     return new_clustermap
 
+def plot_distance_versus_transport(vb_distances, transports, colors, filename):
+    plt.subplot(2, 1, 1)
+    plt.scatter(vb_distances, transports, c=cmap(norm(pd.factorize(colors)[0])))
+    axes = plt.gca()
+    axes.set_xlim(-3, 73)
+    axes.set_ylim([np.min(transports), np.max(transports)])
+    plt.xlabel("Distance between VB genes")
+    plt.ylabel("Cumulative transport")
+    plt.title("Cumulative transport versus gene distance for lambda = " + str(lambd))
+
+    plt.subplot(2, 1, 2)
+    plt.scatter(vb_distances, np.log(transports), c=cmap(norm(pd.factorize(colors)[0])))
+    axes = plt.gca()
+    axes.set_xlim(-3, 73)
+    plt.xlabel("Distance between VB genes")
+    plt.ylabel("log(Cumulative transport)")
+    plt.title("log(Cumulative transport) versus gene distance for lambda = " + str(lambd))
+    
+    plt.savefig(filename)
+
 if __name__ == "__main__":
     va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
     vb_mat = get_gene_distance_matrix("data/gene_dist_matrices/vb_dist.txt")
@@ -96,18 +116,14 @@ if __name__ == "__main__":
         file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" 
         file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
     else:
-        file1 = "data/yfv/P1_0_F1_.txt.top1000.tcrs"
-        file2 = "data/yfv/Q1_0_F1_.txt.top1000.tcrs"
+        file1 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot01.csv" #"data/yfv/P1_0_F1_.txt.top1000.tcrs"
+        file2 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot02.csv" #"data/yfv/P1_15_F1_.txt.top1000.tcrs"
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    plt.figure(figsize=[15, 10])
-    plt.subplots_adjust(hspace=0.5)
-
-    plot_index = 1
     score_matrices = {}
     gene_transfer_matrices = {}
     for distribution_type in ["inverse_to_v_gene"]:
@@ -133,7 +149,7 @@ if __name__ == "__main__":
 
         dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
-        for lambd in [0.01, 0.1]:
+        for lambd in [0.01]:
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
             gene_transfer_map = {}
@@ -151,6 +167,13 @@ if __name__ == "__main__":
             gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
             gene_transfer_matrices[lambd] = gene_transfer_matrix
 
+            row_gene_factors = pd.factorize(gene_transfer_matrix.index)
+            column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
+            cmap = plt.cm.Spectral
+            norm = plt.Normalize(
+                    vmin=np.min(row_gene_factors[0]), 
+                    vmax=max(row_gene_factors[0])
+            )
 
             # Get distance matrix corresponding entrywise to gene_transfer_matrix 
             vb_mat_sub = vb_mat.loc[gene_transfer_matrix.index, gene_transfer_matrix.columns]
@@ -174,35 +197,7 @@ if __name__ == "__main__":
                     scores[row_gene][column_gene] = transport_ij*vb_dist_ij
 
             score_matrices[lambd] = pd.DataFrame(scores)
-
-            row_gene_factors = pd.factorize(gene_transfer_matrix.index)
-            column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
-            cmap = plt.cm.Spectral
-            norm = plt.Normalize(
-                    vmin=np.min(row_gene_factors[0]), 
-                    vmax=max(row_gene_factors[0])
-            )
-
-            colors = column_colors
-            plt.subplot(2, 2, plot_index)
-            plt.scatter(vb_distances, transports, c=cmap(norm(pd.factorize(colors)[0])))
-            axes = plt.gca()
-            axes.set_xlim(-3, 73)
-            axes.set_ylim([np.min(transports), np.max(transports)])
-            plt.xlabel("Distance between VB genes")
-            plt.ylabel("Cumulative transport")
-            plt.title("Cumulative transport versus gene distance for lambda = " + str(lambd))
-
-            plt.subplot(2, 2, plot_index + 1)
-            plt.scatter(vb_distances, np.log(transports), c=cmap(norm(pd.factorize(colors)[0])))
-            axes = plt.gca()
-            axes.set_xlim(-3, 73)
-            plt.xlabel("Distance between VB genes")
-            plt.ylabel("log(Cumulative transport)")
-            plt.title("log(Cumulative transport) versus gene distance for lambda = " + str(lambd))
-            plot_index += 2
-    
-    plt.savefig(results_dir + "scatterplot_grid.png")
+            plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png")
 
     for lambd in score_matrices:
         score_plt = sns.clustermap(score_matrices[lambd], xticklabels=True, yticklabels=True)
