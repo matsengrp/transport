@@ -86,7 +86,15 @@ def get_ordered_clustermap(mat, order_by="row"):
     new_clustermap = sns.heatmap(mat.loc[mat.index[indices], mat.index[indices]], xticklabels=True, yticklabels=True)
     return new_clustermap
 
-def plot_distance_versus_transport(vb_distances, transports, colors, filename):
+def plot_distance_versus_transport(vb_distances, transports, colors, filename, gene_transfer_matrix):
+    row_gene_factors = pd.factorize(gene_transfer_matrix.index)
+    column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
+    cmap = plt.cm.Spectral
+    norm = plt.Normalize(
+            vmin=np.min(row_gene_factors[0]), 
+            vmax=max(row_gene_factors[0])
+    )
+
     plt.subplot(2, 1, 1)
     plt.scatter(vb_distances, transports, c=cmap(norm(pd.factorize(colors)[0])))
     axes = plt.gca()
@@ -123,6 +131,47 @@ def get_mass_objects(df, distribution_type):
         raise Exception("Unsupported distribution_type")
     return (mass, gene_mass_dict)
 
+def get_gene_transfer_matrix(df_1, df_2, ot_mat):
+    N1 = df_1.shape[0]
+    N2 = df_2.shape[0]
+    gene_transfer_map = {}
+    for i in range(0, N1):
+        for j in range(0, N2):
+            gene_i = df_1.iloc[i, 0]
+            gene_j = df_2.iloc[j, 0]
+            if gene_i not in gene_transfer_map:
+                gene_transfer_map[gene_i] = {}
+            if gene_j not in gene_transfer_map[gene_i]:
+                gene_transfer_map[gene_i][gene_j] = 0
+            # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
+            gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
+
+    gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
+    return(gene_transfer_matrix)
+
+def get_scoring_quantities(gene_transfer_matrix, vb_matrix):
+    vb_distances = []
+    transports = []
+    row_colors = []
+    column_colors = []
+    scores = {}
+    for i in range(0, vb_matrix.shape[0]):
+        row_gene = vb_matrix.index[i]
+        scores[row_gene] = {}
+        for j in range(0, vb_matrix.shape[1]):
+            column_gene = vb_matrix.columns[j]
+            vb_dist_ij = vb_matrix.iloc[i, j]
+            transport_ij = gene_transfer_matrix.iloc[i, j]
+            vb_distances.append(vb_dist_ij)
+            transports.append(transport_ij)
+            row_colors.append(row_gene)
+            column_colors.append(column_gene)
+            scores[row_gene][column_gene] = transport_ij*vb_dist_ij
+
+    score_matrix = pd.DataFrame(scores)
+    return (vb_distances, transports, column_colors, score_matrix)
+
+
 def do_bootstrap_trial(df_1, df_2):
     df_1_boot = df_1.sample(df_1.shape[0])
 
@@ -155,54 +204,18 @@ if __name__ == "__main__":
         for lambd in [0.01]:
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
-            gene_transfer_map = {}
-            for i in range(0, N1):
-                for j in range(0, N2):
-                    gene_i = df_1.iloc[i, 0]
-                    gene_j = df_2.iloc[j, 0]
-                    if gene_i not in gene_transfer_map:
-                        gene_transfer_map[gene_i] = {}
-                    if gene_j not in gene_transfer_map[gene_i]:
-                        gene_transfer_map[gene_i][gene_j] = 0
-                    # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
-                    gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
-
-            gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
+            gene_transfer_matrix = get_gene_transfer_matrix(df_1, df_2, ot_mat)
             gene_transfer_matrices[lambd] = gene_transfer_matrix
 
-            row_gene_factors = pd.factorize(gene_transfer_matrix.index)
-            column_gene_factors = pd.factorize(gene_transfer_matrix.columns)
-            cmap = plt.cm.Spectral
-            norm = plt.Normalize(
-                    vmin=np.min(row_gene_factors[0]), 
-                    vmax=max(row_gene_factors[0])
-            )
 
             # Get distance matrix corresponding entrywise to gene_transfer_matrix 
             vb_mat_sub = vb_mat.loc[gene_transfer_matrix.index, gene_transfer_matrix.columns]
 
-            vb_distances = []
-            transports = []
-            row_colors = []
-            column_colors = []
-            scores = {}
-            for i in range(0, vb_mat_sub.shape[0]):
-                row_gene = vb_mat_sub.index[i]
-                scores[row_gene] = {}
-                for j in range(0, vb_mat_sub.shape[1]):
-                    column_gene = vb_mat_sub.columns[j]
-                    vb_dist_ij = vb_mat_sub.iloc[i, j]
-                    transport_ij = gene_transfer_matrix.iloc[i, j]
-                    vb_distances.append(vb_dist_ij)
-                    transports.append(transport_ij)
-                    row_colors.append(row_gene)
-                    column_colors.append(column_gene)
-                    scores[row_gene][column_gene] = transport_ij*vb_dist_ij
+            (vb_distances, transports, column_colors, score_matrix) = get_scoring_quantities(gene_transfer_matrix, vb_mat_sub)
 
-            score_matrix = pd.DataFrame(scores)
             score_matrices[lambd] = score_matrix
             obs_gene_scores = dict(score_matrix.sum(axis=1))
-            plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png")
+            plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png", gene_transfer_matrix)
 
             trial_count = 10
 
