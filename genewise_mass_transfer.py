@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import operator
 import ot
 import pandas as pd
+import random
 import re
 import seaborn as sns; sns.set()
 from os import popen
@@ -171,28 +173,14 @@ def get_scoring_quantities(gene_transfer_matrix, vb_matrix):
     score_matrix = pd.DataFrame(scores)
     return (vb_distances, transports, column_colors, score_matrix)
 
-
-def do_bootstrap_trial(df_1, df_2):
-    df_1_boot = df_1.sample(df_1.shape[0])
-
-if __name__ == "__main__":
-    va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
-    vb_mat = get_gene_distance_matrix("data/gene_dist_matrices/vb_dist.txt")
-
-    results_dir = "results/gene_transfer/"
-    do_full = False
-    if do_full:
-        file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" 
-        file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
-    else:
-        file1 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot01.csv" #"data/yfv/P1_0_F1_.txt.top1000.tcrs"
-        file2 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot02.csv" #"data/yfv/P1_15_F1_.txt.top1000.tcrs"
+def run_gene_score_analysis(file1, file2, do_plot=True):
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
+    scores = {}
     score_matrices = {}
     gene_transfer_matrices = {}
     for distribution_type in ["inverse_to_v_gene"]:
@@ -214,11 +202,10 @@ if __name__ == "__main__":
             (vb_distances, transports, column_colors, score_matrix) = get_scoring_quantities(gene_transfer_matrix, vb_mat_sub)
 
             score_matrices[lambd] = score_matrix
-            obs_gene_scores = dict(score_matrix.sum(axis=1))
+            scores[lambd] = dict(score_matrix.sum(axis=0))
+
+        if do_plot:
             plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png", gene_transfer_matrix)
-
-            trial_count = 10
-
 
     for lambd in score_matrices:
         score_plt = sns.clustermap(score_matrices[lambd], xticklabels=True, yticklabels=True)
@@ -233,3 +220,50 @@ if __name__ == "__main__":
         transfer_plt = sns.clustermap(gene_transfer_matrix, xticklabels=True, yticklabels=True)
         transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
 
+
+    return scores
+
+def do_randomization_trial(full_df):
+    N = full_df.shape[0]
+    df_1_trial = full_df.sample(frac=0.5)
+    df_2_trial = full_df.drop(df_1_trial.index)
+    trial_file_1 = "df_1_trial.csv"
+    trial_file_2 = "df_2_trial.csv"
+    df_1_trial.to_csv(trial_file_1, index=False, header=False)
+    df_2_trial.to_csv(trial_file_2, index=False, header=False)
+    trial_scores = run_gene_score_analysis(trial_file_1, trial_file_2)
+    return trial_scores[0.01]
+
+if __name__ == "__main__":
+    va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
+    vb_mat = get_gene_distance_matrix("data/gene_dist_matrices/vb_dist.txt")
+
+    results_dir = "results/gene_transfer/"
+    do_full = False
+    use_replicate_data = False
+    if do_full:
+        file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" 
+        file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
+    elif use_replicate_data:
+        file1 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot01.csv" 
+        file2 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot02.csv" 
+    else:
+        file1 = "data/yfv/P1_0_F1_.txt.top1000.tcrs"
+        file2 = "data/yfv/P1_15_F1_.txt.top1000.tcrs"
+
+
+    obs_scores = run_gene_score_analysis(file1, file2)[0.01]
+    obs_scores_sorted = sorted(obs_scores.items(), 
+            key=operator.itemgetter(1), 
+            reverse=True)
+    df_1 = get_df_from_file(file1)
+    df_2 = get_df_from_file(file2)
+    full_df = df_1.append(df_2)
+    full_df.index = range(full_df.shape[0])
+    trial_count = 10
+    #trial_score_dict = {gene: [] for gene in obs_scores}
+    null_max_scores = []
+    for trial in range(trial_count):
+        trial_scores = do_randomization_trial(full_df)
+        null_max_scores.append(np.max(list(trial_scores.values())))
+    import pdb; pdb.set_trace()
