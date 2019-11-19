@@ -1,3 +1,5 @@
+import glob
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import operator
@@ -13,12 +15,26 @@ db = 'data/db'
 Dmax = 200 # constant across comparisons
 lambd = .01
 
+def sort_dict(d: dict):
+    return sorted(d.items(), key=operator.itemgetter(1), reverse=True)
+
+def jaccard_similarity(list_a, list_b):
+    set_a = set(list_a)
+    set_b = set(list_b)
+    numerator = len(set_a.intersection(set_b))
+    denominator = len(list_a) + len(list_b) - numerator
+    return numerator/denominator
+
 def get_raw_distance_matrix( f1, f2 ):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     print(cmd)
     all_dists = []
     for line in popen(cmd):
-        all_dists.append( [float(x) for x in line.split() ] )
+        try:
+            all_dists.append( [float(x) for x in line.split() ] )
+        except ValueError:
+            import pdb; pdb.set_trace()
+            print(line)
     N1 = len(all_dists)
     N2 = len(all_dists[0])
     for dists in all_dists:
@@ -36,7 +52,7 @@ def collapse_gene_subfamily(gene: str):
 
 def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=False):
     df = pd.read_csv(filename, header=None)
-    df.columns = ('v_gene', 'cdr3')
+    df.columns = ['v_gene', 'cdr3']
     if collapse_by_subfamily:
         df['v_gene'] = [collapse_gene_subfamily(gene) for gene in df['v_gene']]
     elif collapse_by_allele:
@@ -173,14 +189,14 @@ def get_scoring_quantities(gene_transfer_matrix, vb_matrix):
     score_matrix = pd.DataFrame(scores)
     return (vb_distances, transports, column_colors, score_matrix)
 
-def run_gene_score_analysis(file1, file2, do_plot=True):
+def run_gene_score_analysis(file1, file2, do_plot=False):
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    scores = {}
+    results = {}
     score_matrices = {}
     gene_transfer_matrices = {}
     for distribution_type in ["inverse_to_v_gene"]:
@@ -190,6 +206,8 @@ def run_gene_score_analysis(file1, file2, do_plot=True):
         dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
         for lambd in [0.01]:
+            results[lambd] = {}
+
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
 
             gene_transfer_matrix = get_gene_transfer_matrix(df_1, df_2, ot_mat)
@@ -201,8 +219,9 @@ def run_gene_score_analysis(file1, file2, do_plot=True):
 
             (vb_distances, transports, column_colors, score_matrix) = get_scoring_quantities(gene_transfer_matrix, vb_mat_sub)
 
-            score_matrices[lambd] = score_matrix
-            scores[lambd] = dict(score_matrix.sum(axis=0))
+            results[lambd]['score_matrix'] = score_matrix
+            results[lambd]['scores'] = dict(score_matrix.sum(axis=0))
+            results[lambd]['jaccard_index'] = jaccard_similarity(gene_transfer_matrix.index, gene_transfer_matrix.columns)
 
         if do_plot:
             plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png", gene_transfer_matrix)
@@ -220,19 +239,22 @@ def run_gene_score_analysis(file1, file2, do_plot=True):
         transfer_plt = sns.clustermap(gene_transfer_matrix, xticklabels=True, yticklabels=True)
         transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
 
+    return results
 
-    return scores
-
-def do_randomization_trial(full_df):
-    N = full_df.shape[0]
-    df_1_trial = full_df.sample(frac=0.5)
-    df_2_trial = full_df.drop(df_1_trial.index)
-    trial_file_1 = "df_1_trial.csv"
-    trial_file_2 = "df_2_trial.csv"
-    df_1_trial.to_csv(trial_file_1, index=False, header=False)
-    df_2_trial.to_csv(trial_file_2, index=False, header=False)
-    trial_scores = run_gene_score_analysis(trial_file_1, trial_file_2)
-    return trial_scores[0.01]
+def get_score_results(file1, file_list, output_filename):
+    max_scores = []
+    jaccard_indices = []
+    for filename in file_list:
+        print(filename)
+        trial_scores = run_gene_score_analysis(file1, filename, do_plot=False)[0.01]
+        max_score = np.max(list(trial_scores["scores"].values()))
+        print("Max score: " + str(max_score) + ", Jaccard index: " + str(trial_scores['jaccard_index']))
+        max_scores.append(max_score)
+        jaccard_indices.append(trial_scores['jaccard_index'])
+    result = {"max_scores": max_scores, "jaccard_indices": jaccard_indices}
+    with open(output_filename, 'w') as fp:
+        json.dump(result, fp)
+    return result
 
 if __name__ == "__main__":
     va_mat = get_gene_distance_matrix("data/gene_dist_matrices/va_dist.txt")
@@ -240,30 +262,47 @@ if __name__ == "__main__":
 
     results_dir = "results/gene_transfer/"
     do_full = False
-    use_replicate_data = False
+    use_replicate_data = True
     if do_full:
         file1 = "data/iel_data/ielrep_beta_CD4_tcrs.txt" 
         file2 ="data/iel_data/ielrep_beta_DN_tcrs.txt"  
     elif use_replicate_data:
-        file1 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot01.csv" 
-        file2 = "/fh/fast/matsen_e/data/adaptive-replicate-controls/ot_processed/Subject1_aliquot02.csv" 
+        file_dir = "/fh/fast/matsen_e/bolson2/transport/replicates/"
+        file0 = file_dir + "Subject1_aliquot02_reparsed.csv" 
+        file1 = file_dir + "Subject1_aliquot01_reparsed.csv" 
+        file2 = file_dir + "Subject2_aliquot01_reparsed.csv" 
+        file3 = file_dir + "Subject3_PBMC_aliquot01_reparsed.csv" 
+        file4 = file_dir + "Subject4_PBMC_aliquot01_reparsed.csv" 
     else:
         file1 = "data/yfv/P1_0_F1_.txt.top1000.tcrs"
-        file2 = "data/yfv/P1_15_F1_.txt.top1000.tcrs"
+        file2 = "data/yfv/P1_0_F2_.txt.top1000.tcrs"
 
 
-    obs_scores = run_gene_score_analysis(file1, file2)[0.01]
-    obs_scores_sorted = sorted(obs_scores.items(), 
-            key=operator.itemgetter(1), 
-            reverse=True)
-    df_1 = get_df_from_file(file1)
-    df_2 = get_df_from_file(file2)
-    full_df = df_1.append(df_2)
-    full_df.index = range(full_df.shape[0])
-    trial_count = 10
-    #trial_score_dict = {gene: [] for gene in obs_scores}
-    null_max_scores = []
-    for trial in range(trial_count):
-        trial_scores = do_randomization_trial(full_df)
-        null_max_scores.append(np.max(list(trial_scores.values())))
+    if False:
+        obs_scores_01 = run_gene_score_analysis(file0, file1, do_plot=False)[0.01]['scores']
+        obs_scores_12 = run_gene_score_analysis(file1, file2, do_plot=False)[0.01]['scores']
+        obs_scores_13 = run_gene_score_analysis(file1, file3, do_plot=False)[0.01]['scores']
+        obs_scores_14 = run_gene_score_analysis(file1, file4, do_plot=False)[0.01]['scores']
+        obs_scores_12_sorted = sort_dict(obs_scores_12)
+        obs_scores_13_sorted = sort_dict(obs_scores_13)
+        obs_scores_14_sorted = sort_dict(obs_scores_14)
+        print(obs_scores_12_sorted[0]) 
+        print(obs_scores_13_sorted[0])
+        print(obs_scores_14_sorted[0])
+
+    file_dir = '/fh/fast/matsen_e/bolson2/transport/replicates/'
+    files = [ \
+        sorted(glob.glob(file_dir + 'Subject1_*.csv')),
+        sorted(glob.glob(file_dir + 'Subject2_*.csv')),
+        sorted(glob.glob(file_dir + 'Subject3_*.csv')),
+        sorted(glob.glob(file_dir + 'Subject4_*.csv'))
+    ]
+    files[0].remove(file1)
+
+    results = {i: get_score_results(file1, files[i], "result_" + str(i)) for i in range(len(files))}
+    max_score_dict = {result: results[result]['max_scores'] for result in results}
+    jaccard_index_dict = {result: results[result]['jaccard_indices'] for result in results}
+    with open("results_data.json", 'w') as fp:
+        json.dump(results, fp)
     import pdb; pdb.set_trace()
+
