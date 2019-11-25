@@ -195,7 +195,7 @@ exe = '/loc/no-backup/pbradley/share/pot_data/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
 #db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
-exe = '/loc/no-backup/pbradley/share/pot_data/db'
+db = '/loc/no-backup/pbradley/share/pot_data/db'
 
 ## these are the two tcrs files
 
