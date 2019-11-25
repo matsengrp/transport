@@ -1,3 +1,4 @@
-_ignore
-*.pyc
 bin
+_ignore
+.ipynb_checkpoints
+*.pyc
