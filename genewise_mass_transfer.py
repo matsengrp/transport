@@ -199,13 +199,15 @@ def run_gene_score_analysis(file1, file2, do_plot=False):
     results = {}
     score_matrices = {}
     gene_transfer_matrices = {}
-    for distribution_type in ["inverse_to_v_gene"]:
+    distribution_types = ["inverse_to_v_gene"]
+    lambdas = [0.01]
+    for distribution_type in distribution_types:
         mass_1, gene_mass_dict_1 = get_mass_objects(df_1, distribution_type)
         mass_2, gene_mass_dict_2 = get_mass_objects(df_2, distribution_type)
 
         dist_mat = get_raw_distance_matrix(file1, file2)/Dmax
 
-        for lambd in [0.01]:
+        for lambd in lambdas:
             results[lambd] = {}
 
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, lambd)
@@ -223,14 +225,17 @@ def run_gene_score_analysis(file1, file2, do_plot=False):
             results[lambd]['scores'] = dict(score_matrix.sum(axis=0))
             results[lambd]['jaccard_index'] = jaccard_similarity(gene_transfer_matrix.index, gene_transfer_matrix.columns)
 
+            score_matrices[lambd] = score_matrix
+
         if do_plot:
             plot_distance_versus_transport(vb_distances, transports, column_colors, results_dir + "scatterplot_grid.png", gene_transfer_matrix)
 
-    for lambd in score_matrices:
+    for lambd in lambdas:
         score_plt = sns.clustermap(score_matrices[lambd], xticklabels=True, yticklabels=True)
         score_plt.savefig(results_dir + "score_" + str(lambd) + ".png")
 
-    for lambd in score_matrices:
+    for lambd in lambdas:
+        gene_transfer_matrix = gene_transfer_matrices[lambd]
         transfer_plt = get_ordered_clustermap(gene_transfer_matrix)
         fig = transfer_plt.get_figure()
         fig.savefig(results_dir + "gene_transfer_" + str(lambd) + ".png")
@@ -238,6 +243,7 @@ def run_gene_score_analysis(file1, file2, do_plot=False):
         #gene_transfer_matrix = gene_transfer_matrix[gene_transfer_matrix.index]
         transfer_plt = sns.clustermap(gene_transfer_matrix, xticklabels=True, yticklabels=True)
         transfer_plt.savefig(results_dir + distribution_type + "_transfer_heatmap_" + "lambda_" + str(lambd) + ".png")
+
 
     return results
 
@@ -278,8 +284,8 @@ if __name__ == "__main__":
         file2 = "data/yfv/P1_0_F2_.txt.top1000.tcrs"
 
 
-    if False:
-        obs_scores_01 = run_gene_score_analysis(file0, file1, do_plot=False)[0.01]['scores']
+    if True:
+        obs_scores_01 = run_gene_score_analysis(file1, file0, do_plot=True)[0.01]['scores']
         obs_scores_12 = run_gene_score_analysis(file1, file2, do_plot=False)[0.01]['scores']
         obs_scores_13 = run_gene_score_analysis(file1, file3, do_plot=False)[0.01]['scores']
         obs_scores_14 = run_gene_score_analysis(file1, file4, do_plot=False)[0.01]['scores']
@@ -299,10 +305,10 @@ if __name__ == "__main__":
     ]
     files[0].remove(file1)
 
-    results = {i: get_score_results(file1, files[i], "result_" + str(i)) for i in range(len(files))}
+    results = {i: get_score_results(file1, files[i], "result_boot_" + str(i)) for i in range(len(files))}
     max_score_dict = {result: results[result]['max_scores'] for result in results}
     jaccard_index_dict = {result: results[result]['jaccard_indices'] for result in results}
-    with open("results_data.json", 'w') as fp:
+    with open("results_data_boot.json", 'w') as fp:
         json.dump(results, fp)
     import pdb; pdb.set_trace()
 
