@@ -21,16 +21,16 @@ if __name__ == "__main__":
         num_columns = dist_mat.shape[1]
         # Next, subsample to batch_size columns
         dist_mat = dist_mat.iloc[:, random.sample(range(0, num_columns), batch_size)]
-        dist_mat = np.vectorize(lambda x: 1 - np.exp(-x/100))(dist_mat)
+        #dist_mat = np.vectorize(lambda x: 1 - np.exp(-x/100))(dist_mat)
+        dist_mat = np.vectorize(lambda x: float(x))(dist_mat)
         empirical_distribution = np.ones((batch_size,)) / batch_size
 
         use_pyemd = True
         start_time = time.time()
-        if use_pyemd:
-                dist, mat = pyemd.emd_with_flow(empirical_distribution, empirical_distribution, np.ascontiguousarray(dist_mat))
-        else:
-                lambdas = np.exp(np.linspace(-1 ,3, 20))
-                dists = [ot.sinkhorn2(empirical_distribution, empirical_distribution, dist_mat, lam) for lam in lambdas]
-                mats = [ot.sinkhorn(empirical_distribution, empirical_distribution, dist_mat, lam) for lam in lambdas]
+        dist, mat = pyemd.emd_with_flow(empirical_distribution, empirical_distribution, np.ascontiguousarray(dist_mat))
+        lambdas = np.exp(np.linspace(-1 ,3, 20))
+        dists = [ot.sinkhorn2(empirical_distribution, empirical_distribution, dist_mat, lam) for lam in lambdas]
+        mats = [ot.sinkhorn(empirical_distribution, empirical_distribution, dist_mat, lam) for lam in lambdas]
+        import pdb; pdb.set_trace()
         elapsed_time = time.time() - start_time
         print(str(batch_size) + ": " + str(elapsed_time))
