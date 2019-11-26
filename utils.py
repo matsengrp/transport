@@ -17,7 +17,7 @@ def jaccard_similarity(list_a, list_b):
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
 
-def get_raw_distance_matrix( f1, f2 ):
+def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     print(cmd)
     all_dists = []
@@ -33,6 +33,16 @@ def get_raw_distance_matrix( f1, f2 ):
 
     D = np.array(all_dists)
     print('loaded dists',D.shape)
+
+    if as_pandas_dataframe:
+        D = pd.DataFrame(D)
+
+        df_1 = get_df_from_file(f1)
+        df_2 = get_df_from_file(f2)
+
+        D.index = df_1.iloc[:, index_column]
+        D.columns = df_2.iloc[:, index_column]
+
     return D
 
 def collapse_allele(gene: str):
