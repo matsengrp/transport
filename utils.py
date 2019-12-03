@@ -17,9 +17,10 @@ def jaccard_similarity(list_a, list_b):
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None):
+def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
-    print(cmd)
+    if verbose:
+        print(cmd)
     all_dists = []
     for line in popen(cmd):
         try:
@@ -32,7 +33,8 @@ def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=Non
         assert len(dists) == N2
 
     D = np.array(all_dists)
-    print('loaded dists',D.shape)
+    if verbose:
+        print('loaded dists',D.shape)
 
     if as_pandas_dataframe:
         D = pd.DataFrame(D)
