@@ -5,7 +5,28 @@ import ot
 
 from utils import *
 
-def run_within_gene_analysis(file1, file2, lambd, results_dir, do_clustermap=False, verbose=False):
+def get_loneliness_scores(effort_mat, self_dist_mat, eps):
+    loneliness_scores = {}
+    tcrs = effort_mat.index
+    for t in tcrs:
+        neighbors = []
+        for t2 in tcrs:
+            dist = self_dist_mat.loc[t, t2]
+            try:
+                if dist < eps:
+                    neighbors.append(t2)
+            except ValueError:
+                try:
+                    if any(dist) < eps:
+                        neighbors.append(t2)
+                except ValueError:
+                    pass
+
+        loneliness_scores[t] = effort_mat.loc[neighbors, :].sum()
+
+    return {"scores": loneliness_scores}
+
+def run_within_gene_analysis(file1, file2, lambd, results_dir, do_clustermap=False, verbose=True):
     #dist_mat = get_raw_distance_matrix(file1, file2, as_pandas_dataframe=True, index_column=1)/Dmax
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
@@ -24,6 +45,7 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, do_clustermap=Fal
         mass_1, gene_mass_dict_1 = get_mass_objects(df_1_gene, "inverse_to_v_gene")
         mass_2, gene_mass_dict_2 = get_mass_objects(df_2_gene, "inverse_to_v_gene")
         dist_mat_gene = get_raw_distance_matrix(file1_gene, file2_gene, as_pandas_dataframe=True, index_column=1, verbose=verbose)/Dmax
+        self_dist_mat_gene = get_raw_distance_matrix(file1_gene, file1_gene, as_pandas_dataframe=True, index_column=1, verbose=verbose)/Dmax
         if all(dim > 1 for dim in dist_mat_gene.shape):
             ot_mat_gene = pd.DataFrame(ot.sinkhorn(mass_1, 
                                               mass_2, 
@@ -33,8 +55,8 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, do_clustermap=Fal
                                   columns=df_2_gene.iloc[:, 1]
                                  )
             effort_mat_gene = ot_mat_gene.multiply(dist_mat_gene)
-            row_effort_scores = effort_mat_gene.sum(axis=1)
-            column_effort_scores = effort_mat_gene.sum(axis=0)
+            row_effort_scores = get_loneliness_scores(effort_mat_gene, self_dist_mat_gene, eps=0.25)
+            column_effort_scores = effort_mat_gene.max(axis=0)
             scores[gene] = {}
             scores[gene]['row'] = row_effort_scores
             scores[gene]['column'] = column_effort_scores
@@ -49,7 +71,7 @@ def get_within_gene_score_results(file1, file_list, lambd, output_filename):
     for filename in file_list:
         print(filename)
         trial_scores = run_within_gene_analysis(file0, filename, lambd=lambd, results_dir=output_filename + str("_dir/"))['scores']
-        max_scores = [np.max(trial_scores[gene]['row']) for gene in trial_scores.keys()]
+        max_scores = [np.max(list(trial_scores[gene]['row']['scores'].values())) for gene in trial_scores.keys()]
         print("Max score: " + str(np.max(max_scores)))
         scores.extend(max_scores)
 
