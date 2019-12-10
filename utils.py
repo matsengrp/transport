@@ -4,7 +4,6 @@ import pandas as pd
 from os import popen
 
 exe = 'bin/tcrdists'
-db = 'data/db'
 Dmax = 200 # constant across comparisons
 
 def sort_dict(d: dict):
@@ -17,7 +16,7 @@ def jaccard_similarity(list_a, list_b):
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True):
+def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db='data/db'):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     if verbose:
         print(cmd)
