@@ -5,6 +5,7 @@ import os
 import ot
 import re
 import seaborn as sns
+import sys
 
 from random import sample
 
@@ -31,19 +32,24 @@ def get_differential_loneliness_scores(effort_mat, self_dist_mat, eps):
 
     return {"scores": loneliness_scores}
 
+def downsample_dfs(df_1, df_2):
+    N1 = df_1.shape[0]
+    N2 = df_2.shape[0]
+    if N1 > N2:
+        df_1 = df_1.loc[sample(df_1.index.tolist(), N2)]
+    else:
+        df_2 = df_2.loc[sample(df_2.index.tolist(), N1)]
+    assert df_1.shape[0] == df_2.shape[0]
+    
+    return df_1, df_2
+
 def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_clustermap=False, verbose=False):
     #dist_mat = get_raw_distance_matrix(file1, file2, as_pandas_dataframe=True, index_column=1)/Dmax
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
     if method in ("subsample", "subsample_avg"):
-        N1 = df_1.shape[0]
-        N2 = df_2.shape[0]
-        if N1 > N2:
-            df_1 = df_1.loc[sample(range(N1), N2)]
-        else:
-            df_2 = df_2.loc[sample(range(N2), N1)]
-        assert df_1.shape[0] == df_2.shape[0]
+        df_1, df_2 = downsample_dfs(df_1, df_2)
 
     shared_genes = set(df_1['v_gene']).intersection(set(df_2['v_gene']))
     cdr3_lengths = []
@@ -52,15 +58,18 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_cluste
         if verbose:
             print(gene)
         df_1_gene = df_1[df_1['v_gene'] == gene]
-        file1_gene = "df_1_gene.csv"
-        df_1_gene.to_csv(file1_gene, header=False, index=False)
         df_2_gene = df_2[df_2['v_gene'] == gene]
+        if method in ("subsample", "subsample_avg"):
+            df_1_gene, df_2_gene = downsample_dfs(df_1_gene, df_2_gene)
+
+        file1_gene = "df_1_gene.csv"
         file2_gene = "df_2_gene.csv"
+        df_1_gene.to_csv(file1_gene, header=False, index=False)
         df_2_gene.to_csv(file2_gene, header=False, index=False)
         mass_1, gene_mass_dict_1 = get_mass_objects(df_1_gene, "inverse_to_v_gene")
         mass_2, gene_mass_dict_2 = get_mass_objects(df_2_gene, "inverse_to_v_gene")
         dist_mat_gene = get_raw_distance_matrix(file1_gene, file2_gene, as_pandas_dataframe=True, index_column=1, verbose=verbose, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse')/Dmax
-        if all(dim > 1 for dim in dist_mat_gene.shape):
+        if True: #all(dim > 1 for dim in dist_mat_gene.shape):
             ot_mat_gene = pd.DataFrame(ot.sinkhorn(mass_1, 
                                               mass_2, 
                                               dist_mat_gene,
@@ -78,7 +87,6 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_cluste
             scores[gene] = {}
             scores[gene]['row'] = {"scores": row_scores, "count": len(row_scores)}
             scores[gene]['column'] = {"scores": column_scores, "count": len(column_scores)}
-            print(len(row_scores))
 
             if do_clustermap:
                 cplt = sns.clustermap(effort_mat_gene)
@@ -108,7 +116,7 @@ def get_within_gene_score_results(file1, file_list, method, lambd, output_filena
         print(file_subject)
         scores[file_subject] = run_within_gene_analysis(file1, filename, lambd=lambd, results_dir=output_filename + str("_dir/"), method=method)
 
-    result = {"scores": scores}
+    result = scores
     with open(output_filename, 'w') as fp:
         json.dump(result, fp)
 
@@ -121,12 +129,8 @@ if __name__ == "__main__":
     data_to_use = "iel"
     if data_to_use == "iel":
         file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
-        reference_file = 'CD4_17_B.tcrs'
-        file1 = file_dir + reference_file
-        #file1 = file_dir + 'CD8_10_B.tcrs' 
-        #file1 = file_dir + 'DN_15_B.tcrs' 
-        file2 = file_dir + 'CD4_9_B.tcrs'
-        file3 = file_dir + 'CD8_10_B.tcrs'
+        reference_file = sys.argv[1]
+        file1 = file_dir + reference_file + '_B.tcrs'
         main_dir = "/home/bolson2/sync/within_gene/"
         files = [ \
             sorted(glob.glob(file_dir + 'CD4*B.tcrs')),
@@ -155,9 +159,9 @@ if __name__ == "__main__":
         ]
         files[0].remove(file1)
 
-    method = "subsample_avg"
-    reference_group = re.sub("_.*", "", file1)
-    out_dir = method + "/" + reference_file
+    method = "subsample"
+    reference_group = re.sub("_.*", "", reference_file)
+    out_dir = method + "/" + reference_group
     if not os.path.exists(method):
         os.mkdir(method) 
     if not os.path.exists(out_dir):
@@ -167,4 +171,3 @@ if __name__ == "__main__":
     with open(out_dir + "/within_results.json", 'w') as fp:
         json.dump(results, fp)
 
-    import pdb; pdb.set_trace()
