@@ -44,12 +44,8 @@ def downsample_dfs(df_1, df_2):
     return df_1, df_2
 
 def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_clustermap=False, verbose=False):
-    #dist_mat = get_raw_distance_matrix(file1, file2, as_pandas_dataframe=True, index_column=1)/Dmax
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
-
-    if method in ("subsample", "subsample_avg"):
-        df_1, df_2 = downsample_dfs(df_1, df_2)
 
     shared_genes = set(df_1['v_gene']).intersection(set(df_2['v_gene']))
     cdr3_lengths = []
@@ -69,7 +65,7 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_cluste
         mass_1, gene_mass_dict_1 = get_mass_objects(df_1_gene, "inverse_to_v_gene")
         mass_2, gene_mass_dict_2 = get_mass_objects(df_2_gene, "inverse_to_v_gene")
         dist_mat_gene = get_raw_distance_matrix(file1_gene, file2_gene, as_pandas_dataframe=True, index_column=1, verbose=verbose, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse')/Dmax
-        if True: #all(dim > 1 for dim in dist_mat_gene.shape):
+        if all(dim > 1 for dim in dist_mat_gene.shape):
             ot_mat_gene = pd.DataFrame(ot.sinkhorn(mass_1, 
                                               mass_2, 
                                               dist_mat_gene,
