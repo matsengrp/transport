@@ -19,8 +19,8 @@ format_plot <- function(p) {
     return(formatted_p)    
 }
 
-method <- "subsample"
 reference_group <- args[1] #"CD8"
+method <- args[2]
 results <- fromJSON(file=file.path(method, reference_group, "within_results.json"))
 names(results) <- c(
                     "CD4",
@@ -69,6 +69,6 @@ plot_dir <- file.path("~/sync", method)
 plot_dir %>% dir.create
 ggsave(file.path(plot_dir, paste0("ecdfs_", tolower(reference_group), ".pdf")), height=10, width=16)
 
-p_by_gene <- (ggplot(dat[dat[["Margin"]] == "column", ]) + stat_ecdf(aes(x=Score, group=Group, colour=Group)) + facet_wrap(vars(Gene))) %>% format_plot
+p_by_gene <- (ggplot(dat[dat[["Margin"]] == "row", ]) + stat_ecdf(aes(x=Score, group=Group, colour=Group)) + facet_wrap(vars(Gene))) %>% format_plot
 ggsave(file.path(plot_dir, paste0("ecdfs_", tolower(reference_group), "_by_gene.pdf")), height=10, width=16)
 
