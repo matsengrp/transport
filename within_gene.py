@@ -94,9 +94,11 @@ def get_loneliness_scores(effort_matrix, margin_index, method):
     N1 = effort_matrix.shape[0]
     N2 = effort_matrix.shape[1]
     if method == "ratio":
-        scale_ratio = N1/N2 if margin_index == "row" else N2/N1
+        scale_ratio = N1**2/N2 if margin_index == "row" else N2**2/N1
     elif method == "normalized":
         scale_ratio = 1/(N1*N2)
+    elif method == "subsample":
+        scale_ratio = N1
     else:
         scale_ratio = 1
     if method == "subsample_avg":
@@ -133,12 +135,10 @@ if __name__ == "__main__":
             sorted(glob.glob(file_dir + 'CD8*B.tcrs')),
             sorted(glob.glob(file_dir + 'DN*B.tcrs'))
         ]
-        if file1 in files[0]:
-            files[0].remove(file1)
-        elif file1 in files[1]:
-            files[1].remove(file1)
-        elif file1 in files[2]:
-            files[2].remove(file1)
+        for i in range(2):
+            if file1 in files[i]:
+                files[i].remove(file1)
+
     elif data_to_use == "adaptive":
         file_dir = "/fh/fast/matsen_e/bolson2/transport/replicates/"
         file0 = file_dir + "Subject1_aliquot01_reparsed.csv"
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         ]
         files[0].remove(file1)
 
-    method = "subsample"
+    method = sys.argv[2]
     reference_group = re.sub("_.*", "", reference_file)
     out_dir = method + "/" + reference_group
     if not os.path.exists(method):
