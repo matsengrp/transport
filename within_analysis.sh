@@ -1,12 +1,13 @@
 #!/bin/sh
+METHOD=$1
 
-rm -rf ~/sync/subsample/*
+rm -rf ~/sync/$METHOD/*
 
-python within_gene.py CD4_15
-Rscript --vanilla plot_within_results.R CD4
+python within_gene.py CD4_17 $METHOD
+Rscript --vanilla plot_within_results.R CD4 $METHOD
 
-python within_gene.py CD8_8
-Rscript --vanilla plot_within_results.R CD8
+python within_gene.py CD8_10 $METHOD
+Rscript --vanilla plot_within_results.R CD8 $METHOD
 
-python within_gene.py DN_8
-Rscript --vanilla plot_within_results.R DN
+python within_gene.py DN_15 $METHOD
+Rscript --vanilla plot_within_results.R DN $METHOD
