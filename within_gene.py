@@ -65,7 +65,7 @@ def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_cluste
         mass_1, gene_mass_dict_1 = get_mass_objects(df_1_gene, "inverse_to_v_gene")
         mass_2, gene_mass_dict_2 = get_mass_objects(df_2_gene, "inverse_to_v_gene")
         dist_mat_gene = get_raw_distance_matrix(file1_gene, file2_gene, as_pandas_dataframe=True, index_column=1, verbose=verbose, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse')/Dmax
-        if all(dim > 1 for dim in dist_mat_gene.shape):
+        if all(dim > 5 for dim in dist_mat_gene.shape):
             ot_mat_gene = pd.DataFrame(ot.sinkhorn(mass_1, 
                                               mass_2, 
                                               dist_mat_gene,
@@ -94,7 +94,7 @@ def get_loneliness_scores(effort_matrix, margin_index, method):
     N1 = effort_matrix.shape[0]
     N2 = effort_matrix.shape[1]
     if method == "ratio":
-        scale_ratio = N1**2/N2 if margin_index == "row" else N2**2/N1
+        scale_ratio = N1 if margin_index == "row" else N2
     elif method == "normalized":
         scale_ratio = 1/(N1*N2)
     elif method == "subsample":
