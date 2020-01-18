@@ -11,3 +11,8 @@ Rscript --vanilla plot_within_results.R CD8 $METHOD
 
 python within_gene.py DN_15 $METHOD
 Rscript --vanilla plot_within_results.R DN $METHOD
+
+python permutation.py $METHOD
+
+cp -r $METHOD/* ~/sync/$METHOD/
+

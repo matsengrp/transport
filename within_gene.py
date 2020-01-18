@@ -11,6 +11,8 @@ from random import sample
 
 from utils import *
 
+LAMBDA = 0.1
+
 def get_differential_loneliness_scores(effort_mat, self_dist_mat, eps):
     loneliness_scores = {}
     tcrs = effort_mat.index
@@ -43,7 +45,7 @@ def downsample_dfs(df_1, df_2):
     
     return df_1, df_2
 
-def run_within_gene_analysis(file1, file2, lambd, results_dir, method, do_clustermap=False, verbose=False):
+def run_within_gene_analysis(file1, file2, results_dir, method, lambd=LAMBDA, do_clustermap=False, verbose=False):
     df_1 = get_df_from_file(file1)
     df_2 = get_df_from_file(file2)
 
@@ -135,7 +137,7 @@ if __name__ == "__main__":
             sorted(glob.glob(file_dir + 'CD8*B.tcrs')),
             sorted(glob.glob(file_dir + 'DN*B.tcrs'))
         ]
-        for i in range(2):
+        for i in range(len(files)):
             if file1 in files[i]:
                 files[i].remove(file1)
 
@@ -163,7 +165,7 @@ if __name__ == "__main__":
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     cell_groups = ("CD4", "CD8", "DN")
-    results = {cell_groups[i]: get_within_gene_score_results(file1, files[i], method=method, lambd=0.01, output_filename="within_result_" + str(i)) for i in range(len(files))}
+    results = {cell_groups[i]: get_within_gene_score_results(file1, files[i], method=method, lambd=LAMBDA, output_filename="within_result_" + str(i)) for i in range(len(files))}
     with open(out_dir + "/within_results.json", 'w') as fp:
         json.dump(results, fp)
 
