@@ -1,10 +1,10 @@
 from within_gene import *
 
-def get_trial_scores(file_1, file_2, lambd=0.01):
-    scores = run_within_gene_analysis(file_1, file_2, lambd=lambd, results_dir=None, method=sys.argv[1])
+def get_trial_scores(file_1, file_2):
+    scores = run_within_gene_analysis(file_1, file_2, results_dir=None, method=sys.argv[1])
     return scores
 
-def get_permutation_score_distribution(file_1, file_2, trial_count=30):
+def get_permutation_score_distribution(file_1, file_2, trial_count=50):
     df_1 = get_df_from_file(file_1)
     df_2 = get_df_from_file(file_2)
     N1 = df_1.shape[0]
@@ -23,8 +23,7 @@ def get_permutation_score_distribution(file_1, file_2, trial_count=30):
         df_2_trial.to_csv(file_2_trial, header=False, index=False)
 
         trial_scores = get_trial_scores(file_1_trial, file_2_trial)
-        trial_dict = {trial: trial_scores}
-        all_scores.append(trial_dict)
+        all_scores.append(trial_scores)
 
     return all_scores
 
