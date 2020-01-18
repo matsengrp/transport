@@ -2,6 +2,7 @@
 METHOD=$1
 
 rm -rf ~/sync/$METHOD/*
+rm -rf $METHOD/*
 
 python within_gene.py CD4_17 $METHOD
 Rscript --vanilla plot_within_results.R CD4 $METHOD
