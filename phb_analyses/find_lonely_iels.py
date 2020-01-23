@@ -16,14 +16,18 @@ import sys
 import random
 
 ## this is the tcrdist-computing executable
-exe = 'bin/tcrdists'
+exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+#exe = 'bin/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
-db = 'data/databases/fake_pubtcrs_db_mouse'
+db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
+#db = 'data/databases/fake_pubtcrs_db_mouse'
 
 ## these are the two tcrs files
-file1 = 'data/iel_data/ielrep_beta_DN_tcrs.txt'
-file2 = 'data/iel_data/ielrep_beta_CD4_tcrs.txt'
+file1 = '/loc/no-backup/pbradley/share/pot_data/ielrep_beta_DN_tcrs.txt'
+file2 = '/loc/no-backup/pbradley/share/pot_data/ielrep_beta_CD4_tcrs.txt'
+#file1 = 'data/iel_data/ielrep_beta_DN_tcrs.txt'
+#file2 = 'data/iel_data/ielrep_beta_CD4_tcrs.txt'
 
 #lambd = .025
 lambd = .01
