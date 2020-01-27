@@ -4,13 +4,16 @@ def get_trial_scores(file_1, file_2):
     scores = run_within_gene_analysis(file_1, file_2, results_dir=None, method=sys.argv[1])
     return scores
 
-def get_permutation_score_distribution(file_1, file_2, trial_count=50):
+def get_permutation_score_distribution(file_1, file_2, trial_count=100):
     df_1 = get_df_from_file(file_1)
     df_2 = get_df_from_file(file_2)
+    obs_scores = get_trial_scores(file_1, file_2)
+    all_scores = []
+    obs_results = {"observed": {0: obs_scores}}
+    all_scores.append(obs_results)
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
-    all_scores = []
     for trial in range(trial_count):
         print(trial)
         df_1_trial_indices = sample(full_df.index.tolist(), N1)
@@ -23,7 +26,7 @@ def get_permutation_score_distribution(file_1, file_2, trial_count=50):
         df_2_trial.to_csv(file_2_trial, header=False, index=False)
 
         trial_scores = get_trial_scores(file_1_trial, file_2_trial)
-        all_scores.append(trial_scores)
+        all_scores.append({"permutation": {trial: trial_scores}})
 
     return all_scores
 
