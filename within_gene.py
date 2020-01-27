@@ -83,8 +83,8 @@ def run_within_gene_analysis(file1, file2, results_dir, method, lambd=LAMBDA, do
                 row_scores = get_loneliness_scores(effort_mat_gene, margin_index="row", method=method) 
                 column_scores = get_loneliness_scores(effort_mat_gene, margin_index="column", method=method)
             scores[gene] = {}
-            scores[gene]['row'] = {"scores": row_scores, "count": len(row_scores)}
-            scores[gene]['column'] = {"scores": column_scores, "count": len(column_scores)}
+            scores[gene]['row'] = row_scores
+            scores[gene]['column'] = column_scores
 
             if do_clustermap:
                 cplt = sns.clustermap(effort_mat_gene)
@@ -93,6 +93,7 @@ def run_within_gene_analysis(file1, file2, results_dir, method, lambd=LAMBDA, do
 
 def get_loneliness_scores(effort_matrix, margin_index, method):
     margins = {"row": 1, "column": 0}
+    cdr3s = {"row": effort_matrix.index, "column": effort_matrix.columns}
     N1 = effort_matrix.shape[0]
     N2 = effort_matrix.shape[1]
     if method == "ratio":
@@ -106,7 +107,16 @@ def get_loneliness_scores(effort_matrix, margin_index, method):
     if method == "subsample_avg":
         scores = [x*scale_ratio for x in list(effort_matrix.mean(axis=margins[margin_index]))]
     else:
-        scores = [x*scale_ratio for x in list(effort_matrix.sum(axis=margins[margin_index]))]
+        effort_sums = effort_matrix.sum(axis=margins[margin_index])
+        scores = list(effort_sums*scale_ratio) 
+        cdr3s = effort_sums.index
+        #scores = {cdr3: (effort_sums[cdr3]).item()*scale_ratio for cdr3 in effort_sums}
+        try:
+            scores = [{cdr3s[i]: scores[i]} for i in range(len(effort_sums))]
+        except:
+            import pdb; pdb.set_trace()
+        #scores = {cdr3: scale_ratio*effort_sum.item() for cdr3, effort_sum in effort_sums.items()}
+        #scores = {x*scale_ratio for x in list(effort_matrix.sum(axis=margins[margin_index]))]
     return scores
 
 def get_within_gene_score_results(file1, file_list, method, lambd, output_filename):
@@ -116,7 +126,7 @@ def get_within_gene_score_results(file1, file_list, method, lambd, output_filena
         print(file_subject)
         scores[file_subject] = run_within_gene_analysis(file1, filename, lambd=lambd, results_dir=output_filename + str("_dir/"), method=method)
 
-    result = scores
+    result = [{"biological": {0: scores}}]
     with open(output_filename, 'w') as fp:
         json.dump(result, fp)
 
@@ -135,7 +145,7 @@ if __name__ == "__main__":
         files = [ \
             sorted(glob.glob(file_dir + 'CD4*B.tcrs')),
             sorted(glob.glob(file_dir + 'CD8*B.tcrs')),
-            sorted(glob.glob(file_dir + 'DN*B.tcrs'))
+            sorted(glob.glob(file_dir + 'DN*B.tcrs')),
         ]
         for i in range(len(files)):
             if file1 in files[i]:
