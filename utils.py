@@ -59,7 +59,7 @@ def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=F
         df['v_gene'] = [collapse_gene_subfamily(gene) for gene in df['v_gene']]
     elif collapse_by_allele:
         df['v_gene'] = [collapse_allele(gene) for gene in df['v_gene']]
-    return df
+    return df.drop_duplicates()
 
 def tabulate_gene_frequencies(gene_list, as_probability=True):
     gene_list_len = len(gene_list)
