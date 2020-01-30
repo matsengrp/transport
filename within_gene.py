@@ -121,12 +121,16 @@ def get_loneliness_scores(effort_matrix, margin_index, method):
 
 def get_within_gene_score_results(file1, file_list, method, lambd, output_filename):
     scores = {}
-    for filename in file_list:
-        file_subject = re.sub('\.tcrs', '', ntpath.basename(filename))
-        print(file_subject)
-        scores[file_subject] = run_within_gene_analysis(file1, filename, lambd=lambd, results_dir=output_filename + str("_dir/"), method=method)
+    for file_1 in file1:
+        for file_2 in file_list:
+            if file_1 is not file_2:
+                file_subject = re.sub('\.tcrs', '', ntpath.basename(file_2))
+                print(file_subject)
+                scores[file_subject] = run_within_gene_analysis(file_1, file_2, lambd=lambd, results_dir=output_filename + str("_dir/"), method=method)
+            else:
+                print("Skipping " + file_1 + "...")
 
-    result = [{"biological": {0: scores}}]
+        result = [{"biological": {0: scores}}]
     with open(output_filename, 'w') as fp:
         json.dump(result, fp)
 
@@ -147,9 +151,6 @@ if __name__ == "__main__":
             sorted(glob.glob(file_dir + 'CD8*B.tcrs')),
             sorted(glob.glob(file_dir + 'DN*B.tcrs')),
         ]
-        for i in range(len(files)):
-            if file1 in files[i]:
-                files[i].remove(file1)
 
     elif data_to_use == "adaptive":
         file_dir = "/fh/fast/matsen_e/bolson2/transport/replicates/"
@@ -174,8 +175,8 @@ if __name__ == "__main__":
         os.mkdir(method) 
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    cell_groups = ("CD4", "CD8", "DN")
-    results = {cell_groups[i]: get_within_gene_score_results(file1, files[i], method=method, lambd=LAMBDA, output_filename="within_result_" + str(i)) for i in range(len(files))}
+    cell_groups = ("DN")
+    results = {cell_groups[i]: get_within_gene_score_results(files[2], files[i], method=method, lambd=LAMBDA, output_filename="within_result_" + str(i)) for i in range(len(files))}
     with open(out_dir + "/within_results.json", 'w') as fp:
         json.dump(results, fp)
 
