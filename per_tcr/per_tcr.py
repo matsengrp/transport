@@ -1,5 +1,8 @@
+from collections import defaultdict
 from random import sample
 import sys
+
+import ot
 
 sys.path.append('..')
 from utils import *
@@ -28,11 +31,36 @@ def split_datasets(full_df, N1, N2, tcr_index):
 def do_randomization_test(df_1, df_2, trial_count=10):
     tcr_id = 'DN_11_846' # This TCR has a CDR3 of CALGDH, which is unusally short
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
-    tcr_row = full_df[full_df['id'] == tcr_id].index.values[0]
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, tcr_index=tcr_row)
+    tcr_row = full_df[full_df['id'] == tcr_id].index.values[0]
+    effort_dict = defaultdict(list)
+    for trial in range(trial_count):
+        df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, tcr_index=tcr_row)
+
+        trial_file_1 = "trial_file_1.csv"
+        trial_file_2 = "trial_file_2.csv"
+
+        df_1_trial.iloc[:, [0, 1]].to_csv(trial_file_1, header=False, index=False)
+        df_2_trial.iloc[:, [0, 1]].to_csv(trial_file_2, header=False, index=False)
+
+        mass_1, _ = get_mass_objects(df_1_trial, "inverse_to_v_gene")
+        mass_2, _ = get_mass_objects(df_2_trial, "inverse_to_v_gene")
+
+        dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)/DMAX
+        ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, LAMBDA)
+        effort_mat = N2*np.multiply(dist_mat, ot_mat)
+
+        efforts = DMAX*N1*effort_mat.sum(axis=0)
+        assert efforts.shape[0] == N2
+
+
+        tcr_position = np.where(df_2_trial['id'] == tcr_id)[0].tolist()[0]
+        
+        effort_dict[tcr_id].append(efforts[tcr_position])
+    return effort_dict
+
 
 if __name__ == "__main__":
     main_dir = '/home/bolson2/sync/within_gene/'
