@@ -29,16 +29,21 @@ def split_datasets(full_df, N1, N2, tcr_index):
     df_2_trial = full_df.iloc[~full_df.index.isin(df_1_trial_indices)]
     return df_1_trial, df_2_trial
 
-def do_randomization_test(df_1, df_2, trial_count=10):
+def do_randomization_test(df_1, df_2, trial_count=20):
     #tcr_id = 'DN_11_846' # This TCR has a CDR3 of CALGDH, which is unusally short
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
 
-    effort_dict = defaultdict(list)
+    effort_dict = defaultdict(dict)
     for tcr_id in df_2['id']:
         print(tcr_id)
         tcr_row = full_df[full_df['id'] == tcr_id].index.values[0]
+        tcr_v_gene = full_df.iloc[tcr_row, :]['v_gene']
+        tcr_cdr3 = full_df.iloc[tcr_row, :]['cdr3']
+        effort_dict[tcr_id][tcr_v_gene] = {}
+        effort_dict[tcr_id][tcr_v_gene][tcr_cdr3] = []
+
         for trial in range(trial_count):
             df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, tcr_index=tcr_row)
 
@@ -55,13 +60,13 @@ def do_randomization_test(df_1, df_2, trial_count=10):
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, LAMBDA)
             effort_mat = N2*np.multiply(dist_mat, ot_mat)
 
-            efforts = DMAX*N1*effort_mat.sum(axis=0)
+            efforts = N1*effort_mat.sum(axis=0)
             assert efforts.shape[0] == N2
 
 
             tcr_position = np.where(df_2_trial['id'] == tcr_id)[0].tolist()[0]
             
-            effort_dict[tcr_id].append(efforts[tcr_position])
+            effort_dict[tcr_id][tcr_v_gene][tcr_cdr3].append(efforts[tcr_position])
     return effort_dict
 
 
@@ -76,6 +81,6 @@ if __name__ == "__main__":
     dn_df = get_processed_df(dn_subject, file_dir)
 
     result = do_randomization_test(cd4_df, dn_df)
-    with open('per_tcr.json', 'w') as fp:
+    with open('/home/bolson2/sync/per_tcr/per_tcr.json', 'w') as fp:
         json.dump(result, fp)
 
