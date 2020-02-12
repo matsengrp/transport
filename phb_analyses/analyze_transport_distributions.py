@@ -14,6 +14,9 @@
 ##
 ##
 
+from collections import defaultdict
+import json
+
 import numpy as np
 import ot
 from glob import glob
@@ -23,11 +26,11 @@ from scipy.stats import mannwhitneyu, ttest_ind
 
 
 ## this is the tcrdist-computing executable
-exe = '/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+exe = 'bin/tcrdists' #'/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
 #exe = 'bin/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
-db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
+db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse' #'/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
 #db = 'data/databases/fake_pubtcrs_db_mouse'
 
 
@@ -105,9 +108,9 @@ def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
 ## could run the full loop...
 
 for repfile1 in fg_repfiles:
+    print(repfile1)
     tcrs = [x[:-1] for x in open(repfile1,'r')]
     N1 = len(tcrs)
-    print('num_tcrs:',len(tcrs),repfile1)
 
     ## compute intra-repertoire distance matrix to find TCR neighborhoods
     D_11 = get_raw_distance_matrix( repfile1, repfile1 )
@@ -128,6 +131,12 @@ for repfile1 in fg_repfiles:
     T_bg_means = np.mean(T_bg,axis=1)
     T_bg_stddevs = np.std(T_bg,axis=1)
 
+    result = {"foreground": {"means": T_fg_means.tolist(), "std_devs": T_fg_stddevs.tolist()}, "background": {"means": T_bg_means.tolist(), "std_devs": T_bg_stddevs.tolist()}}
+    with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_stats.json", "w") as fp:
+        json.dump(result, fp)
+
+    nbhd_means = defaultdict(dict)
+    nbhd_sds = defaultdict(list)
     for ii in range(N1):
         ii_nbrhood_mask = ( D_11[ii,:] < nbrcutoff )
 
@@ -137,9 +146,20 @@ for repfile1 in fg_repfiles:
         ii_bg_nbrhood_efforts = np.sum( T_bg[ii_nbrhood_mask,:], axis=0 )
 
         # the efforts relative to the FG repertoires
-        ii_fg_efforts = T_fg[ii,:]
-        # the efforts rel to FG, summed over the nbrs (includes ii, might only be ii)
+        ii_fg_efforts = T_fg[ii,:] # the efforts rel to FG, summed over the nbrs (includes ii, might only be ii)
         ii_fg_nbrhood_efforts = np.sum( T_fg[ii_nbrhood_mask,:], axis=0 )
+
+        T_fg_nbhd = np.array( ii_fg_nbrhood_efforts ).transpose()
+        T_bg_nbhd = np.array( ii_bg_nbrhood_efforts ).transpose()
+
+        nbhd_means[ii] = {
+            "foreground": np.mean(T_fg_nbhd,axis=0), 
+            "background": np.mean(T_bg_nbhd,axis=0) 
+        }
+        nbhd_sds[ii] = {
+            "foreground": np.std(T_fg_nbhd,axis=0),
+            "background": np.std(T_bg_nbhd,axis=0)
+        }
 
         # compare fg, bg distributions of efforts
         mwu_stat, mwu_pval = mannwhitneyu( ii_bg_efforts, ii_fg_efforts )
@@ -158,6 +178,11 @@ for repfile1 in fg_repfiles:
               .format( T_fg_means[ii], T_fg_stddevs[ii], T_bg_means[ii], T_bg_stddevs[ii],
                        t_stat, t_pval, t_pval_nbrhood, mwu_pval, mwu_pval_nbrhood, np.sum(ii_nbrhood_mask), tcrs[ii]))
 
+
+    nbhd_result = {"means": nbhd_means, "sds": nbhd_sds }
+    with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
+        json.dump(nbhd_result, fp)
+    import pdb; pdb.set_trace()
     exit() # early exit: just do the first repfile
 
 
