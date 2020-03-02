@@ -31,7 +31,6 @@ def split_datasets(full_df, N1, N2, tcr_index):
     return df_1_trial, df_2_trial
 
 def do_randomization_test(df_1, df_2, method_type, trial_count=2):
-    #tcr_id = 'DN_11_846' # This TCR has a CDR3 of CALGDH, which is unusally short
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
@@ -67,7 +66,11 @@ def do_randomization_test(df_1, df_2, method_type, trial_count=2):
 
             tcr_position = np.where(df_2_trial['id'] == tcr_id)[0].tolist()[0]
 
-            if method_type is "neighborhood":
+            if method_type is "neighborhood_means":
+                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
+                ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
+                tcr_effort = np.mean(efforts[ii_nbrhood_mask])
+            if method_type is "neighborhood_sums":
                 dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
                 ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
                 tcr_effort = np.sum(efforts[ii_nbrhood_mask])
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     main_dir = '/home/bolson2/sync/within_gene/'
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
-    cd4_subject = 'CD4_20' # 791 tcrs
+    cd4_subject = 'CD4_20'
     dn_subject = 'DN_10' # 797 tcrs
     cd8_subject = 'CD8_15'
 
@@ -91,7 +94,7 @@ if __name__ == "__main__":
     cd4_df = get_processed_df(cd4_subject, file_dir)
     dn_df = get_processed_df(dn_subject, file_dir)
     cd8_df = get_processed_df(cd8_subject, file_dir)
-    method_type="neighborhood"
+    method_type="neighborhood_means"
     result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
     results_dir = '/home/bolson2/sync/per_tcr/' + method_type
     if not os.path.exists(results_dir):
