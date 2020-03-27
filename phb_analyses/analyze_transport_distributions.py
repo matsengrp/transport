@@ -47,10 +47,11 @@ fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain
 bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
 
 lambd = .01
-
-nbrcutoff = 48.5 # distance at which two single-chain tcrs are considered nbrs
-
 Dmax = 200 # constant across comparisons
+
+
+nbrcutoffs = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
+
 
 def get_raw_distance_matrix( f1, f2 ):
     ''' Returns the tcrdist distance matrix D between tcrs in file f1 and tcrs in file f2
@@ -114,6 +115,7 @@ for repfile1 in fg_repfiles:
 
     ## compute intra-repertoire distance matrix to find TCR neighborhoods
     D_11 = get_raw_distance_matrix( repfile1, repfile1 )
+    np.savetxt("/home/bolson2/sync/per_tcr/dist_mat.csv", D_11, delimiter=",", fmt='%i')
 
     ## compute per-tcr efforts against each of the other repertoires:
     fg_efforts = [ get_file1_tcr_efforts(repfile1,x) for x in fg_repfiles if x != repfile1 ]
@@ -138,51 +140,59 @@ for repfile1 in fg_repfiles:
     nbhd_means = defaultdict(dict)
     nbhd_sds = defaultdict(list)
     for ii in range(N1):
-        ii_nbrhood_mask = ( D_11[ii,:] < nbrcutoff )
+        nbhd_means_by_cutoff = defaultdict(dict)
+        for nbrcutoff in nbrcutoffs:
+            ii_nbrhood_mask = ( D_11[ii,:] < nbrcutoff )
 
-        # the efforts relative to the BG repertoires
-        ii_bg_efforts = T_bg[ii,:]
-        # the efforts rel to BG, summed over the nbrs (includes ii, might only be ii)
-        ii_bg_nbrhood_efforts = np.sum( T_bg[ii_nbrhood_mask,:], axis=0 )
+            # the efforts relative to the BG repertoires
+            ii_bg_efforts = T_bg[ii,:]
+            # the efforts rel to BG, summed over the nbrs (includes ii, might only be ii)
+            ii_bg_nbrhood_efforts = np.sum( T_bg[ii_nbrhood_mask,:], axis=0 )
 
-        # the efforts relative to the FG repertoires
-        ii_fg_efforts = T_fg[ii,:] # the efforts rel to FG, summed over the nbrs (includes ii, might only be ii)
-        ii_fg_nbrhood_efforts = np.sum( T_fg[ii_nbrhood_mask,:], axis=0 )
+            # the efforts relative to the FG repertoires
+            ii_fg_efforts = T_fg[ii,:] # the efforts rel to FG, summed over the nbrs (includes ii, might only be ii)
+            ii_fg_nbrhood_efforts = np.sum( T_fg[ii_nbrhood_mask,:], axis=0 )
 
-        T_fg_nbhd = np.array( ii_fg_nbrhood_efforts ).transpose()
-        T_bg_nbhd = np.array( ii_bg_nbrhood_efforts ).transpose()
+            T_fg_nbhd = np.array( ii_fg_nbrhood_efforts ).transpose()
+            T_bg_nbhd = np.array( ii_bg_nbrhood_efforts ).transpose()
 
-        nbhd_means[ii] = {
-            "foreground": np.mean(T_fg_nbhd,axis=0), 
-            "background": np.mean(T_bg_nbhd,axis=0) 
-        }
-        nbhd_sds[ii] = {
-            "foreground": np.std(T_fg_nbhd,axis=0),
-            "background": np.std(T_bg_nbhd,axis=0)
-        }
+            
+            neighbor_count = sum(ii_nbrhood_mask).item()
+            cutoff_means = defaultdict(dict)
+            cutoff_means[neighbor_count] = {
+                "foreground": np.mean(T_fg_nbhd,axis=0), 
+                "background": np.mean(T_bg_nbhd,axis=0),
+            }
 
-        # compare fg, bg distributions of efforts
-        mwu_stat, mwu_pval = mannwhitneyu( ii_bg_efforts, ii_fg_efforts )
-        t_stat, t_pval     = ttest_ind( ii_bg_efforts, ii_fg_efforts )
+            nbhd_means_by_cutoff[nbrcutoff] = cutoff_means
 
-        _, mwu_pval_nbrhood = mannwhitneyu( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
-        _, t_pval_nbrhood     = ttest_ind( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
+            cutoff_sds = {
+                "foreground": np.std(T_fg_nbhd,axis=0),
+                "background": np.std(T_bg_nbhd,axis=0)
+            }
 
-        # crude multiple-testing correction:
-        mwu_pval *= N1
-        t_pval *= N1
-        mwu_pval_nbrhood *= N1
-        t_pval_nbrhood *= N1
+            # compare fg, bg distributions of efforts
+            mwu_stat, mwu_pval = mannwhitneyu( ii_bg_efforts, ii_fg_efforts )
+            t_stat, t_pval     = ttest_ind( ii_bg_efforts, ii_fg_efforts )
 
-        print('fg_trans: {:6.2f} {:6.2f} bg: {:6.2f} {:6.2f} t_stat: {:6.2f} t_pval: {:8.1e} {:8.1e} mwu_pval: {:8.1e} {:8.1e} nbrs: {:3d} {}'\
-              .format( T_fg_means[ii], T_fg_stddevs[ii], T_bg_means[ii], T_bg_stddevs[ii],
-                       t_stat, t_pval, t_pval_nbrhood, mwu_pval, mwu_pval_nbrhood, np.sum(ii_nbrhood_mask), tcrs[ii]))
+            _, mwu_pval_nbrhood = mannwhitneyu( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
+            _, t_pval_nbrhood     = ttest_ind( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
 
+            # crude multiple-testing correction:
+            mwu_pval *= N1
+            t_pval *= N1
+            mwu_pval_nbrhood *= N1
+            t_pval_nbrhood *= N1
+
+            print('fg_trans: {:6.2f} {:6.2f} bg: {:6.2f} {:6.2f} t_stat: {:6.2f} t_pval: {:8.1e} {:8.1e} mwu_pval: {:8.1e} {:8.1e} nbrs: {:3d} {}'\
+                  .format( T_fg_means[ii], T_fg_stddevs[ii], T_bg_means[ii], T_bg_stddevs[ii],
+                           t_stat, t_pval, t_pval_nbrhood, mwu_pval, mwu_pval_nbrhood, np.sum(ii_nbrhood_mask), tcrs[ii]))
+        nbhd_means[ii] = defaultdict(dict)
+        nbhd_means[ii][tcrs[ii]] = nbhd_means_by_cutoff
 
     nbhd_result = {"means": nbhd_means, "sds": nbhd_sds }
     with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
         json.dump(nbhd_result, fp)
-    import pdb; pdb.set_trace()
     exit() # early exit: just do the first repfile
 
 
