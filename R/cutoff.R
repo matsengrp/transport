@@ -5,31 +5,67 @@ library(magrittr)
 library(reshape2)
 library(rjson)
 
-dist_mat <- read.csv("dist_mat.csv", header=FALSE)
-results <- fromJSON(file="empirical_fg_bg_nbhd_stats.json")
-results[["sds"]] <- NULL
-dat <- results %>% melt
-dat[["L1"]] <- NULL
-names(dat) <- c("Score", "Group", "NeighborCount", "TCRDistRadius", "TCR", "Index")
-dat[["NeighborCount"]] <- dat[["NeighborCount"]] %>% as.numeric
-dat[["TCRDistRadius"]] <- dat[["TCRDistRadius"]] %>% as.numeric
+if(FALSE) {
+    dist_mats <- read.csv("dist_mat.csv", header=FALSE)
+    results <- list("results"=fromJSON(file="empirical_fg_bg_nbhd_stats.json"))
+    for(subject in names(results)) {
+        results[[subject]][["sds"]] <- NULL
+    }
+    dat <- results %>% melt
 
-dat[dat$Group == "background", ]$Group <- "tmp"
-dat[dat$Group == "foreground", ]$Group <- "background"
-dat[dat$Group == "tmp", ]$Group <- "foreground"
+    dat[, c("L3", "L1")] <- NULL
+    names(dat) <- c("Score", "Group", "NeighborCount", "TCRDistRadius", "TCR", "Index", "Subject")
+    dat[["NeighborCount"]] <- dat[["NeighborCount"]] %>% as.numeric
+    dat[["TCRDistRadius"]] <- dat[["TCRDistRadius"]] %>% as.numeric
+    dat[["Subject"]] <- dat[["Subject"]] %>% 
+        sapply(gsub, pattern=".tcrs", replacement="")
+    
+    dat[dat$Group == "background", ]$Group <- "tmp"
+    dat[dat$Group == "foreground", ]$Group <- "background"
+    dat[dat$Group == "tmp", ]$Group <- "foreground"
 
-# Switch nomenclature from Phil's analysis
-fg_dat <- dat[dat$Group == "foreground", ]
-bg_dat <- dat[dat$Group == "background", ]
-
-build_mds_dataframe <- function(ref_dat, radius) {
-    mds_scores <- ref_dat[ref_dat$TCRDistRadius == radius, ]$Score
-    mds_dat <- data.frame(x1=mds_fit[, 1], x2=mds_fit[, 2], score=mds_scores)
-    return(mds_dat)
+    fg_dat <- dat[dat$Group == "foreground", ]
+    bg_dat <- dat[dat$Group == "background", ]
+    
+    subjects <- dat$Subject %>% 
+        unique
+    dist_mats <- {}
+    mds_dats <- {}
+    for(subject in subjects) {
+        dist_mats[[subject]] <- read.csv(
+                                         paste0(
+                                                   "~/sync/per_tcr/dist_matrices/",
+                                                   subject,
+                                                   ".tcrs.csv"
+                                                  ),
+                                         header=FALSE
+                                        )
+        mds_dats[[subject]] <- cmdscale(dist_mats[[subject]], k=2)
+    }
 }
 
-plot_mds_with_scores <- function(ref_dat, radius) {
-    mds_dat <- build_mds_dataframe(ref_dat, radius)
+
+build_mds_dataframe <- function(ref_dat, radius, subjects) {
+    full_dat <- matrix(NA, nrow=0, ncol=4) %>% 
+        data.frame %>%
+        setNames(c("x1", "x2", "subject", "score"))
+    for(subject in subjects) {
+        mds_scores <- ref_dat[ref_dat[["TCRDistRadius"]] == radius & 
+                              ref_dat[["Subject"]] == subject, ][["Score"]]
+        subject_dat <- data.frame(
+                                  x1=mds_dats[[subject]][, 1], 
+                                  x2=mds_dats[[subject]][, 2],
+                                  subject=subject,
+                                  score=mds_scores
+                                 )
+        full_dat <- rbind.data.frame(full_dat, subject_dat) 
+    }
+    return(full_dat)
+}
+
+
+plot_mds_with_scores <- function(ref_dat, radius, subject) {
+    mds_dat <- build_mds_dataframe(ref_dat, radius, subject)
     p <- ggplot(mds_dat, aes(x=x1, y=x2, color=score)) + 
         geom_point(size=0.5) +
         scale_colour_viridis_c(breaks = as.numeric(mds_dat$score)) +
@@ -39,42 +75,68 @@ plot_mds_with_scores <- function(ref_dat, radius) {
     return(p)
 }
 
-mds_fit <- cmdscale(dist_mat, k=2)
-xs <- mds_fit[, 1]
-ys <- mds_fit[, 2]
-scores <- fg_dat[fg_dat$TCRDistRadius == 50.5, ]$Score
-tcrs <- (dat$TCR %>% rle %$% values)
-
-left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
-right_tcr_cluster <- tcrs[xs > 30 & xs < 60 & ys > 50 & ys < 90 & scores > 1000]
-tcr_band <- tcrs[ys > -50 & ys < -20 & scores > 1000]
+if(FALSE) {
+    xs <- mds_fit[, 1]
+    ys <- mds_fit[, 2]
+    scores <- fg_dat[fg_dat$TCRDistRadius == 50.5, ]$Score
+    tcrs <- (dat$TCR %>% rle %$% values)
+    
+    left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
+    right_tcr_cluster <- tcrs[xs > 30 & xs < 60 & ys > 50 & ys < 90 & scores > 1000]
+    tcr_band <- tcrs[ys > -50 & ys < -20 & scores > 1000]
+}
 
 fg_plots <- {}
 bg_plots <- {}
 radii <- fg_dat$TCRDistRadius %>% unique
 for(i in 1:length(radii)) {
-    fg_plots[[i]] <- plot_mds_with_scores(fg_dat, radii[i])
-    bg_plots[[i]] <- plot_mds_with_scores(bg_dat, radii[i])
+    fg_plots[[i]] <- plot_mds_with_scores(fg_dat, radii[i], subjects[2])
+    bg_plots[[i]] <- plot_mds_with_scores(bg_dat, radii[i], subjects[2])
 }
 fg_mds_plots <- plot_grid(plotlist=fg_plots)
 ggsave("fg_mds.pdf", width=12, height=10)
 bg_mds_plots <- plot_grid(plotlist=bg_plots)
 ggsave("bg_mds.pdf", width=12, height=10)
 
-fg_snapshot_dat  <- fg_dat %>%
-   build_mds_dataframe(radius=50.5) %>%
-   cbind.data.frame(Group="foreground")
-bg_snapshot_dat  <- bg_dat %>%
-   build_mds_dataframe(radius=50.5) %>%
-   cbind.data.frame(Group="background")
-snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
-snapshot_dat %>%
-    ggplot(aes(x=x1, y=x2, color=score)) + geom_point() +
-       scale_colour_viridis_c()  +
+for(subject in subjects) {
+    fg_snapshot_dat  <- fg_dat %>%
+       build_mds_dataframe(radius=50.5, subjects=subject) %>%
+       cbind.data.frame(Group="foreground")
+    bg_snapshot_dat  <- bg_dat %>%
+       build_mds_dataframe(radius=50.5, subject=subject) %>%
+       cbind.data.frame(Group="background")
+    snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
+    snapshot_dat %>%
+        ggplot(aes(x=x1, y=x2, color=score)) + geom_point() +
+           scale_colour_viridis_c()  +
+           theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
+                 panel.background = element_blank()) +
+           facet_wrap(vars(Group))
+    ggsave(paste0("snapshots/", subject, ".pdf"), width=10, height=6)
+}
+
+fg_mds_dat_by_subject <- fg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
+bg_mds_dat_by_subject <- bg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
+by_subject_scores <- as.numeric(c(fg_mds_dat_by_subject$score, bg_mds_dat_by_subject$score))
+
+fg_mds_dat_by_subject %>%
+    ggplot(aes(x=x1, y=x2, color=score)) + 
+       geom_point(size=0.5) +
+       scale_colour_viridis_c(breaks=by_subject_scores) +
        theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
              panel.background = element_blank()) +
-       facet_wrap(vars(Group))
-ggsave("snapshot.pdf", width=10, height=6)
+       facet_wrap(vars(subject), scales="free")
+ggsave("fg_snapshot_by_subject.pdf", width=12, height=10)
+    
+bg_dat %>%
+    build_mds_dataframe(radius=50.5, subjects=subjects) %>%
+    ggplot(aes(x=x1, y=x2, color=score)) + 
+       geom_point(size=0.5) +
+       scale_colour_viridis_c(breaks=by_subject_scores) +
+       theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
+             panel.background = element_blank()) +
+       facet_wrap(vars(subject), scales="free")
+ggsave("bg_snapshot_by_subject.pdf", width=12, height=10)
 
 plot_dir <- "~/sync/per_tcr/radius_analysis"
 
@@ -127,5 +189,6 @@ p4 <- dat %>% ggplot(aes(x=Score, colour=Group)) +
     xlab("Mean per-tcr loneliness") +
     ylab("ECDF")
 ggsave(file.path(plot_dir, "ecdfs_by_radius.pdf"))
+
 
 
