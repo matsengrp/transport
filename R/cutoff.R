@@ -50,13 +50,14 @@ build_mds_dataframe <- function(ref_dat, radius, subjects) {
         data.frame %>%
         setNames(c("x1", "x2", "subject", "score"))
     for(subject in subjects) {
-        mds_scores <- ref_dat[ref_dat[["TCRDistRadius"]] == radius & 
-                              ref_dat[["Subject"]] == subject, ][["Score"]]
+        subject_radius_dat <- ref_dat[ref_dat[["TCRDistRadius"]] == radius & 
+                                      ref_dat[["Subject"]] == subject, ]
         subject_dat <- data.frame(
                                   x1=mds_dats[[subject]][, 1], 
                                   x2=mds_dats[[subject]][, 2],
                                   subject=subject,
-                                  score=mds_scores
+                                  score=subject_radius_dat[["Score"]],
+                                  label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label)
                                  )
         full_dat <- rbind.data.frame(full_dat, subject_dat) 
     }
@@ -73,6 +74,38 @@ plot_mds_with_scores <- function(ref_dat, radius, subject) {
               panel.background = element_blank()) +
         ggtitle(paste("Radius = ", radius))
     return(p)
+}
+
+has_revere_motif <- function(tcr) {
+    tcr_info <- tcr %>% 
+        strsplit(split=",") %>%
+        first
+    gene <- tcr_info[1]
+    cdr3 <- tcr_info[2]
+    revere_cdr3 <- "GT[VI]SNERLFF"
+    return(grepl(revere_cdr3, cdr3))
+}
+
+has_tremont_motif <- function(tcr) {
+    tcr_info <- tcr %>%
+        strsplit(split=",") %>%
+        first
+    gene <- tcr_info[1]
+    cdr3 <- tcr_info[2]
+    tremont_gene <- "TRBV16"
+    tremont_cdr3 <- "DWG"
+    return(grepl(tremont_gene, gene) && grepl(tremont_cdr3, cdr3))
+}
+
+get_motif_label <- function(tcr) {
+    if(tcr %>% has_revere_motif) {
+        label <- "Revere"
+    } else if(tcr %>% has_tremont_motif) {
+        label <- "Tremont"
+    } else {
+        label <- "N/A"
+    }
+    return(label)
 }
 
 if(FALSE) {
@@ -107,7 +140,7 @@ for(subject in subjects) {
        cbind.data.frame(Group="background")
     snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
     snapshot_dat %>%
-        ggplot(aes(x=x1, y=x2, color=score)) + geom_point() +
+        ggplot(aes(x=x1, y=x2, color=score)) + geom_point(aes(shape=label)) +
            scale_colour_viridis_c()  +
            theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
                  panel.background = element_blank()) +
