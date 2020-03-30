@@ -3,6 +3,9 @@ import pandas as pd
 
 from os import popen
 
+
+db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
+
 exe = 'bin/tcrdists'
 Dmax = 200 # constant across comparisons
 
@@ -16,7 +19,8 @@ def jaccard_similarity(list_a, list_b):
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db='data/db'):
+
+def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db=db, exe=exe):
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     if verbose:
         print(cmd)
@@ -36,13 +40,15 @@ def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=Non
         print('loaded dists',D.shape)
 
     if as_pandas_dataframe:
-        D = pd.DataFrame(D)
+        if index_column:
+            D = pd.DataFrame(D)
 
-        df_1 = get_df_from_file(f1)
-        df_2 = get_df_from_file(f2)
+            df_1 = get_df_from_file(f1)
+            df_2 = get_df_from_file(f2)
 
-        D.index = df_1.iloc[:, index_column]
-        D.columns = df_2.iloc[:, index_column]
+            D.index = df_1.iloc[:, index_column]
+            D.columns = df_2.iloc[:, index_column]
+
 
     return D
 
