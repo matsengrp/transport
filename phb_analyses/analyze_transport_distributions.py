@@ -18,6 +18,7 @@ from collections import defaultdict
 import json
 
 import numpy as np
+import ntpath
 import ot
 from glob import glob
 from os import popen
@@ -108,6 +109,7 @@ def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
 ## loop over the foreground repertoires (but actually we only do the first one, see early exit below)
 ## could run the full loop...
 
+nbhd_result = defaultdict(dict)
 for repfile1 in fg_repfiles:
     print(repfile1)
     tcrs = [x[:-1] for x in open(repfile1,'r')]
@@ -115,7 +117,13 @@ for repfile1 in fg_repfiles:
 
     ## compute intra-repertoire distance matrix to find TCR neighborhoods
     D_11 = get_raw_distance_matrix( repfile1, repfile1 )
-    np.savetxt("/home/bolson2/sync/per_tcr/dist_mat.csv", D_11, delimiter=",", fmt='%i')
+    subject = ntpath.basename(repfile1)
+    np.savetxt(
+        "/home/bolson2/sync/per_tcr/dist_matrices/" + subject + ".csv", 
+        D_11,
+        delimiter=",",
+        fmt='%i'
+    )
 
     ## compute per-tcr efforts against each of the other repertoires:
     fg_efforts = [ get_file1_tcr_efforts(repfile1,x) for x in fg_repfiles if x != repfile1 ]
@@ -190,9 +198,6 @@ for repfile1 in fg_repfiles:
         nbhd_means[ii] = defaultdict(dict)
         nbhd_means[ii][tcrs[ii]] = nbhd_means_by_cutoff
 
-    nbhd_result = {"means": nbhd_means, "sds": nbhd_sds }
+    nbhd_result[subject] = {"means": nbhd_means} #, "sds": nbhd_sds }
     with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
         json.dump(nbhd_result, fp)
-    exit() # early exit: just do the first repfile
-
-
