@@ -76,10 +76,13 @@ plot_mds_with_scores <- function(ref_dat, radius, subject) {
     return(p)
 }
 
+extract_tcr_info <- function(tcr) {
+    return(tcr %>% strsplit(split=",") %>% first)
+}
+
 has_revere_motif <- function(tcr) {
     tcr_info <- tcr %>% 
-        strsplit(split=",") %>%
-        first
+        extract_tcr_info
     gene <- tcr_info[1]
     cdr3 <- tcr_info[2]
     revere_cdr3 <- "GT[VI]SNERLFF"
@@ -88,8 +91,7 @@ has_revere_motif <- function(tcr) {
 
 has_tremont_motif <- function(tcr) {
     tcr_info <- tcr %>%
-        strsplit(split=",") %>%
-        first
+        extract_tcr_info
     gene <- tcr_info[1]
     cdr3 <- tcr_info[2]
     tremont_gene <- "TRBV16"
@@ -97,11 +99,35 @@ has_tremont_motif <- function(tcr) {
     return(grepl(tremont_gene, gene) && grepl(tremont_cdr3, cdr3))
 }
 
+has_ida_motif <- function(tcr) {
+    tcr_info <- tcr %>%
+        extract_tcr_info
+    gene <- tcr_info[1]
+    cdr3 <- tcr_info[2]
+    ida_gene <- "TRBV(16|12)"
+    ida_cdr3 <- "Y*A*EQ[YF]F"
+    return(grepl(ida_gene, gene) && grepl(ida_cdr3, cdr3))
+}
+
+has_motif_x <- function(tcr) {
+    tcr_info <- tcr %>%
+        extract_tcr_info
+    gene <- tcr_info[1]
+    cdr3 <- tcr_info[2]
+    x_gene <- "TRBV(12|13)"
+    x_cdr3  <- "[AE]E*[TR]*[LQ][FY]F"
+    return(grepl(x_gene, gene) && grepl(x_cdr3, cdr3))
+}
+
 get_motif_label <- function(tcr) {
     if(tcr %>% has_revere_motif) {
         label <- "Revere"
     } else if(tcr %>% has_tremont_motif) {
         label <- "Tremont"
+    } else if(tcr %>% has_ida_motif) {
+        label <- "Ida"
+    } else if(tcr %>% has_motif_x) {
+        label <- "X"
     } else {
         label <- "N/A"
     }
@@ -117,6 +143,37 @@ if(FALSE) {
     left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
     right_tcr_cluster <- tcrs[xs > 30 & xs < 60 & ys > 50 & ys < 90 & scores > 1000]
     tcr_band <- tcrs[ys > -50 & ys < -20 & scores > 1000]
+}
+
+extract_tcrs_from_mds_cluster <- function(
+                                          ref_dat,
+                                          subject,
+                                          xrange,
+                                          yrange,
+                                          score_threshold=1800,
+                                          radius=50.5
+                                         ) {
+   tmp <- ref_dat %>%
+       build_mds_dataframe(radius=radius, subjects=subject)
+   filtered_dat <- tmp[tmp[["x1"]] > xrange[1] &
+                       tmp[["x1"]] < xrange[2] &
+                       tmp[["x2"]] > yrange[1] &
+                       tmp[["x2"]] < yrange[2] &
+                       tmp[["score"]] > score_threshold,
+                      ]
+   tcrs <- dat[dat[["Subject"]] == subject, ][["TCR"]] %>% 
+       rle %$%
+       values
+   cluster_tcrs <- tcrs[filtered_dat %>% rownames %>% as.numeric]
+   return(cluster_tcrs)
+}
+
+if(TRUE) {
+    tmp <- fg_dat %>% build_mds_dataframe(radius=50.5, subjects="DN_12_B")
+    tcrs <- dat[dat[["Subject"]] == "DN_12_B", ][["TCR"]] %>% rle %$% values
+    tcrs[tmp[tmp$x1 > -30 & tmp$x1 < 20 & tmp$x2 < -50 & tmp$score > 1800, ] %>% 
+         rownames %>% 
+         as.numeric]
 }
 
 fg_plots <- {}
@@ -139,6 +196,7 @@ for(subject in subjects) {
        build_mds_dataframe(radius=50.5, subject=subject) %>%
        cbind.data.frame(Group="background")
     snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
+    snapshot_dat[["label"]] <- factor(snapshot_dat[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida", "X"))
     snapshot_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + geom_point(aes(shape=label)) +
            scale_colour_viridis_c()  +
