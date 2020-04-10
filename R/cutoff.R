@@ -5,7 +5,10 @@ library(magrittr)
 library(reshape2)
 library(rjson)
 
-if(FALSE) {
+projection_method <- "MDS"
+dir.create(projection_method)
+
+if(F) {
     dist_mats <- read.csv("dist_mat.csv", header=FALSE)
     results <- list("results"=fromJSON(file="empirical_fg_bg_nbhd_stats.json"))
     for(subject in names(results)) {
@@ -29,8 +32,23 @@ if(FALSE) {
     
     subjects <- dat$Subject %>% 
         unique
+}
+
+get_projection <- function(dist_mat, projection_method="MDS", k=2) {
+    if(projection_method == "MDS") {
+        projection <- cmdscale(dist_mat, k=k)
+    } else if(projection_method == "TSNE") {
+        library(tsne)
+        projection <- tsne(dist_mat, k=k)
+    } else {
+        stop(paste("Unsupported projection method:", projection_method))
+    } 
+
+    return(projection)
+}
+
+if(F) {
     dist_mats <- {}
-    mds_dats <- {}
     for(subject in subjects) {
         dist_mats[[subject]] <- read.csv(
                                          paste0(
@@ -40,12 +58,21 @@ if(FALSE) {
                                                   ),
                                          header=FALSE
                                         )
-        mds_dats[[subject]] <- cmdscale(dist_mats[[subject]], k=2)
+    }
+}
+
+if(F) {
+    mds_dats <- {}
+    for(subject in subjects) {
+        mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
+                                              projection_method=projection_method, 
+                                              k=2)
     }
 }
 
 
-build_mds_dataframe <- function(ref_dat, radius, subjects) {
+
+build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE) {
     full_dat <- matrix(NA, nrow=0, ncol=4) %>% 
         data.frame %>%
         setNames(c("x1", "x2", "subject", "score"))
@@ -59,6 +86,19 @@ build_mds_dataframe <- function(ref_dat, radius, subjects) {
                                   score=subject_radius_dat[["Score"]],
                                   label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label)
                                  )
+
+        if(add_extra_metrics) {
+            subject_dat[["relative_score"]] <- subject_dat[["score"]]/sum(subject_dat[["score"]])
+            label_freqs <- subject_dat[["label"]] %>% 
+                table %>% 
+                sapply(function(x) { x/nrow(subject_dat) })
+            subject_dat[["prevalence"]] <- subject_dat[["label"]] %>%
+                sapply(function(x) { label_freqs[x] })
+    
+            ecdf_function <- ecdf(subject_dat[["score"]])
+            subject_dat[["ecdf"]] <- subject_dat[["score"]] %>%
+                ecdf_function
+        }
         full_dat <- rbind.data.frame(full_dat, subject_dat) 
     }
     return(full_dat)
@@ -188,6 +228,54 @@ ggsave("fg_mds.pdf", width=12, height=10)
 bg_mds_plots <- plot_grid(plotlist=bg_plots)
 ggsave("bg_mds.pdf", width=12, height=10)
 
+fg_mds_dat_by_subject <- fg_dat %>% 
+    build_mds_dataframe(radius=50.5, subjects=subjects, add_extra_metrics=TRUE) %>%
+    cbind.data.frame(group="foreground")
+bg_mds_dat_by_subject <- bg_dat %>% 
+    build_mds_dataframe(radius=50.5, subjects=subjects, add_extra_metrics=TRUE) %>%
+    cbind.data.frame(group="background")
+mds_dat_by_subject <- rbind.data.frame(
+                                       fg_mds_dat_by_subject,
+                                       bg_mds_dat_by_subject
+                                      )
+
+motif_metrics_dir <- "motif_metrics"
+dir.create(motif_metrics_dir)
+
+mds_dat_by_subject %>%
+    ggplot(aes(x=score, y=..density.., color=label)) + 
+    facet_wrap(vars(group), dir="v") +
+    geom_freqpoly() +
+    xlab("Average loneliness") +
+    theme_minimal()
+ggsave(file.path(motif_metrics_dir, "loneliness_by_motif.pdf"), width=8, height=10)
+
+mds_dat_by_subject %>%
+    ggplot(aes(x=relative_score, y=..density.., color=label)) + 
+    facet_wrap(vars(group), dir="v") +
+    geom_freqpoly() +
+    xlab("Average relative loneliness") +
+    theme_minimal()
+ggsave(file.path(motif_metrics_dir, "relative_loneliness_by_motif.pdf"), width=8, height=10)
+
+mds_dat_by_subject %>%
+    ggplot(aes(x=ecdf, y=..density.., color=label)) + 
+    facet_wrap(vars(group)) +
+    geom_freqpoly() +
+    xlab("ECDF") +
+    theme_minimal()
+ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"), width=10, height=8)
+
+prevalence_dat <- mds_dat_by_subject[, c("label", "prevalence")]
+prevalence_dat[!duplicated(prevalence_dat), ] %>%
+    ggplot(aes(x=prevalence, y=..density.., color=label)) + 
+    geom_freqpoly() +
+    xlab("Prevalence") +
+    theme_minimal()
+ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"), width=10, height=8)
+
+snapshot_dir <- file.path("snapshots", projection_method)
+dir.create(snapshot_dir)
 for(subject in subjects) {
     fg_snapshot_dat  <- fg_dat %>%
        build_mds_dataframe(radius=50.5, subjects=subject) %>%
@@ -203,22 +291,13 @@ for(subject in subjects) {
            theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
                  panel.background = element_blank()) +
            facet_wrap(vars(Group))
-    ggsave(paste0("snapshots/", subject, ".pdf"), width=10, height=6)
+    ggsave(file.path(snapshot_dir, paste0(subject, ".pdf")), width=10, height=6)
 }
 
 fg_mds_dat_by_subject <- fg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
 bg_mds_dat_by_subject <- bg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
 by_subject_scores <- as.numeric(c(fg_mds_dat_by_subject$score, bg_mds_dat_by_subject$score))
 
-fg_mds_dat_by_subject %>%
-    ggplot(aes(x=x1, y=x2, color=score)) + 
-       geom_point(size=0.5) +
-       scale_colour_viridis_c(breaks=by_subject_scores) +
-       theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
-             panel.background = element_blank()) +
-       facet_wrap(vars(subject), scales="free")
-ggsave("fg_snapshot_by_subject.pdf", width=12, height=10)
-    
 bg_dat %>%
     build_mds_dataframe(radius=50.5, subjects=subjects) %>%
     ggplot(aes(x=x1, y=x2, color=score)) + 
