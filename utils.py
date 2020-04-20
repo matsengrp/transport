@@ -111,10 +111,14 @@ def get_mass_objects(df, distribution_type):
 
         mass = get_gene_weighted_mass_distribution(df)
         gene_mass_dict = get_gene_masses(df['v_gene'])
+        return (mass, gene_mass_dict)
     elif distribution_type == "uniform":
+        from collections import Counter
         N = df.shape[0]
-        mass = np.ones((N, ))/N
-        gene_mass_dict = tabulate_gene_frequencies(list(df['v_gene']))
+        counter = Counter(df['TCR'])
+        unique_tcrs = counter.keys()
+        mass = [count/N for count in counter.values()]
+        return (mass, unique_tcrs)
     else:
         raise Exception("Unsupported distribution_type")
     return (mass, gene_mass_dict)
