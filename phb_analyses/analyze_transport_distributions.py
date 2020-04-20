@@ -14,11 +14,13 @@
 ##
 ##
 
+
 from collections import defaultdict
 import json
 
 import numpy as np
 import ntpath
+
 import ot
 from glob import glob
 from os import popen
@@ -32,6 +34,7 @@ exe = 'bin/tcrdists' #'/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
 db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse' #'/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
+
 #db = 'data/databases/fake_pubtcrs_db_mouse'
 
 
@@ -52,6 +55,7 @@ Dmax = 200 # constant across comparisons
 
 
 nbrcutoffs = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
+
 
 
 def get_raw_distance_matrix( f1, f2 ):
@@ -109,6 +113,7 @@ def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
 ## loop over the foreground repertoires (but actually we only do the first one, see early exit below)
 ## could run the full loop...
 
+
 nbhd_result = defaultdict(dict)
 for repfile1 in fg_repfiles:
     print(repfile1)
@@ -124,6 +129,7 @@ for repfile1 in fg_repfiles:
         delimiter=",",
         fmt='%i'
     )
+
 
     ## compute per-tcr efforts against each of the other repertoires:
     fg_efforts = [ get_file1_tcr_efforts(repfile1,x) for x in fg_repfiles if x != repfile1 ]
@@ -201,3 +207,4 @@ for repfile1 in fg_repfiles:
     nbhd_result[subject] = {"means": nbhd_means} #, "sds": nbhd_sds }
     with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
         json.dump(nbhd_result, fp)
+
