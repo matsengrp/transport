@@ -5,10 +5,12 @@ library(magrittr)
 library(reshape2)
 library(rjson)
 
+source("plot_utils.R")
+
 projection_method <- "MDS"
 dir.create(projection_method)
 
-if(F) {
+if(T) {
     dist_mats <- read.csv("dist_mat.csv", header=FALSE)
     results <- list("results"=fromJSON(file="empirical_fg_bg_nbhd_stats.json"))
     for(subject in names(results)) {
@@ -34,20 +36,13 @@ if(F) {
         unique
 }
 
-get_projection <- function(dist_mat, projection_method="MDS", k=2) {
-    if(projection_method == "MDS") {
-        projection <- cmdscale(dist_mat, k=k)
-    } else if(projection_method == "TSNE") {
-        library(tsne)
-        projection <- tsne(dist_mat, k=k)
-    } else {
-        stop(paste("Unsupported projection method:", projection_method))
-    } 
+#rand_dict <- fromJSON(file=file.path("neighborhood_sums", "per_tcr.json"))
+#rand_df <- rand_dict %>% melt
+#names(rand_df) <- c("Score", "CDR3", "Gene", "TCR_ID", "TCR"F)
+#rand_df[["TCR"]] <- Map(function(x, y) { paste(x, y, sep=",") }, rand_df[["Gene"]], rand_df[["CDR3"]])
+#stop()
 
-    return(projection)
-}
-
-if(F) {
+if(T) {
     dist_mats <- {}
     for(subject in subjects) {
         dist_mats[[subject]] <- read.csv(
@@ -61,117 +56,13 @@ if(F) {
     }
 }
 
-if(F) {
+if(T) {
     mds_dats <- {}
     for(subject in subjects) {
         mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
                                               projection_method=projection_method, 
                                               k=2)
     }
-}
-
-
-
-build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE) {
-    full_dat <- matrix(NA, nrow=0, ncol=4) %>% 
-        data.frame %>%
-        setNames(c("x1", "x2", "subject", "score"))
-    for(subject in subjects) {
-        subject_radius_dat <- ref_dat[ref_dat[["TCRDistRadius"]] == radius & 
-                                      ref_dat[["Subject"]] == subject, ]
-        subject_dat <- data.frame(
-                                  x1=mds_dats[[subject]][, 1], 
-                                  x2=mds_dats[[subject]][, 2],
-                                  subject=subject,
-                                  score=subject_radius_dat[["Score"]],
-                                  label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label)
-                                 )
-
-        if(add_extra_metrics) {
-            subject_dat[["relative_score"]] <- subject_dat[["score"]]/sum(subject_dat[["score"]])
-            label_freqs <- subject_dat[["label"]] %>% 
-                table %>% 
-                sapply(function(x) { x/nrow(subject_dat) })
-            subject_dat[["prevalence"]] <- subject_dat[["label"]] %>%
-                sapply(function(x) { label_freqs[x] })
-    
-            ecdf_function <- ecdf(subject_dat[["score"]])
-            subject_dat[["ecdf"]] <- subject_dat[["score"]] %>%
-                ecdf_function
-        }
-        full_dat <- rbind.data.frame(full_dat, subject_dat) 
-    }
-    return(full_dat)
-}
-
-
-plot_mds_with_scores <- function(ref_dat, radius, subject) {
-    mds_dat <- build_mds_dataframe(ref_dat, radius, subject)
-    p <- ggplot(mds_dat, aes(x=x1, y=x2, color=score)) + 
-        geom_point(size=0.5) +
-        scale_colour_viridis_c(breaks = as.numeric(mds_dat$score)) +
-        theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank(),
-              panel.background = element_blank()) +
-        ggtitle(paste("Radius = ", radius))
-    return(p)
-}
-
-extract_tcr_info <- function(tcr) {
-    return(tcr %>% strsplit(split=",") %>% first)
-}
-
-has_revere_motif <- function(tcr) {
-    tcr_info <- tcr %>% 
-        extract_tcr_info
-    gene <- tcr_info[1]
-    cdr3 <- tcr_info[2]
-    revere_cdr3 <- "GT[VI]SNERLFF"
-    return(grepl(revere_cdr3, cdr3))
-}
-
-has_tremont_motif <- function(tcr) {
-    tcr_info <- tcr %>%
-        extract_tcr_info
-    gene <- tcr_info[1]
-    cdr3 <- tcr_info[2]
-    tremont_gene <- "TRBV16"
-    tremont_cdr3 <- "DWG"
-    return(grepl(tremont_gene, gene) && grepl(tremont_cdr3, cdr3))
-}
-
-has_ida_motif <- function(tcr) {
-    tcr_info <- tcr %>%
-        extract_tcr_info
-    gene <- tcr_info[1]
-    cdr3 <- tcr_info[2]
-    ida_gene <- "TRBV(16|12)"
-    ida_cdr3 <- "Y*A*EQ[YF]F"
-    return(grepl(ida_gene, gene) && grepl(ida_cdr3, cdr3))
-}
-
-has_motif_x <- function(tcr) {
-    tcr_info <- tcr %>%
-        extract_tcr_info
-    gene <- tcr_info[1]
-    cdr3 <- tcr_info[2]
-    x_gene <- "TRBV(12|13)"
-    x_cdr3  <- "[AE]E*[TR]*[LQ][FY]F"
-    return(grepl(x_gene, gene) && grepl(x_cdr3, cdr3))
-}
-
-get_motif_label <- function(tcr) {
-    if(tcr %>% has_revere_motif) {
-        label <- "Revere"
-    } else if(tcr %>% has_tremont_motif) {
-        label <- "Tremont"
-    } else if(tcr %>% has_ida_motif) {
-        label <- "Ida"
-    } else if(tcr %>% has_motif_x) {
-        label <- "X"
-    } else {
-        label <- "N/A"
-    }
-    return(label)
 }
 
 if(FALSE) {
@@ -183,29 +74,6 @@ if(FALSE) {
     left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
     right_tcr_cluster <- tcrs[xs > 30 & xs < 60 & ys > 50 & ys < 90 & scores > 1000]
     tcr_band <- tcrs[ys > -50 & ys < -20 & scores > 1000]
-}
-
-extract_tcrs_from_mds_cluster <- function(
-                                          ref_dat,
-                                          subject,
-                                          xrange,
-                                          yrange,
-                                          score_threshold=1800,
-                                          radius=50.5
-                                         ) {
-   tmp <- ref_dat %>%
-       build_mds_dataframe(radius=radius, subjects=subject)
-   filtered_dat <- tmp[tmp[["x1"]] > xrange[1] &
-                       tmp[["x1"]] < xrange[2] &
-                       tmp[["x2"]] > yrange[1] &
-                       tmp[["x2"]] < yrange[2] &
-                       tmp[["score"]] > score_threshold,
-                      ]
-   tcrs <- dat[dat[["Subject"]] == subject, ][["TCR"]] %>% 
-       rle %$%
-       values
-   cluster_tcrs <- tcrs[filtered_dat %>% rownames %>% as.numeric]
-   return(cluster_tcrs)
 }
 
 if(TRUE) {
@@ -248,7 +116,7 @@ mds_dat_by_subject %>%
     geom_freqpoly() +
     xlab("Average loneliness") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "loneliness_by_motif.pdf"), width=8, height=10)
+ggsave(file.path(motif_metrics_dir, "loneliness_by_motif.pdf"))
 
 mds_dat_by_subject %>%
     ggplot(aes(x=relative_score, y=..density.., color=label)) + 
@@ -256,7 +124,7 @@ mds_dat_by_subject %>%
     geom_freqpoly() +
     xlab("Average relative loneliness") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "relative_loneliness_by_motif.pdf"), width=8, height=10)
+ggsave(file.path(motif_metrics_dir, "relative_loneliness_by_motif.pdf"))
 
 mds_dat_by_subject %>%
     ggplot(aes(x=ecdf, y=..density.., color=label)) + 
@@ -264,7 +132,7 @@ mds_dat_by_subject %>%
     geom_freqpoly() +
     xlab("ECDF") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"), width=10, height=8)
+ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"))
 
 prevalence_dat <- mds_dat_by_subject[, c("label", "prevalence")]
 prevalence_dat[!duplicated(prevalence_dat), ] %>%
@@ -272,7 +140,7 @@ prevalence_dat[!duplicated(prevalence_dat), ] %>%
     geom_freqpoly() +
     xlab("Prevalence") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"), width=10, height=8)
+ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"))
 
 snapshot_dir <- file.path("snapshots", projection_method)
 dir.create(snapshot_dir)
