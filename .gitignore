@@ -1,4 +1,5 @@
 bin
 _ignore
+.gitconfig
 .ipynb_checkpoints
 *.pyc
