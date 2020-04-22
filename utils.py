@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from os import popen
+import ot
 
 
 db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
@@ -20,7 +21,14 @@ def jaccard_similarity(list_a, list_b):
     return numerator/denominator
 
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db=db, exe=exe):
+def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db=db, exe=exe, dedup=False):
+    if dedup:
+        df_1 = get_df_from_file(f1)
+        f1 = "dedup_1.csv"
+        df_1.drop_duplicates().to_csv(f1, header=False, index=False)
+        df_2 = get_df_from_file(f2)
+        f2 = "dedup_2.csv"
+        df_2.drop_duplicates().to_csv(f2, header=False, index=False)
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     if verbose:
         print(cmd)
@@ -118,6 +126,7 @@ def get_mass_objects(df, distribution_type):
     elif distribution_type == "uniform":
         from collections import Counter
         N = df.shape[0]
+        df = append_id_column(df)
         counter = Counter(df['TCR'])
         unique_tcrs = counter.keys()
         mass = [count/N for count in counter.values()]
@@ -125,6 +134,32 @@ def get_mass_objects(df, distribution_type):
     else:
         raise Exception("Unsupported distribution_type")
     return (mass, gene_mass_dict)
+
+def get_transport_objects(
+    df_1,
+    df_2,
+    distribution_type="uniform",
+    DMAX=200,
+    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+    exe='bin/tcrdists',
+):
+    mass_1 = get_mass_objects(df_1, distribution_type=distribution_type)
+    mass_2 = get_mass_objects(df_2, distribution_type=distribution_type)
+
+    deduplicated_file_1 = "deduplicated_file_1.csv"
+    deduplicated_file_2 = "deduplicated_file_2.csv"
+
+    df_1.iloc[:, [0, 1]].to_csv(deduplicated_file_1, header=False, index=False)
+    df_2.iloc[:, [0, 1]].to_csv(deduplicated_file_2, header=False, index=False)
+
+    dist_mat = get_raw_distance_matrix(
+        deduplicated_file_1,
+        deduplicated_file_2,
+        db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+        exe='bin/tcrdists',
+        verbose=False)/DMAX
+
+    return mass_1, mass_2, dist_mat
 
 def get_gene_transfer_matrix(df_1, df_2, ot_mat):
     N1 = df_1.shape[0]
@@ -165,3 +200,18 @@ def get_scoring_quantities(gene_transfer_matrix, vb_matrix):
 
     score_matrix = pd.DataFrame(scores)
     return (vb_distances, transports, column_colors, score_matrix)
+
+def append_id_column(df):
+    if 'TCR' not in df.columns:
+        df['TCR'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
+    return df
+
+def get_effort_scores(df_1, df_2, LAMBDA=0.1, DMAX=200):
+    mass_1, mass_2, dist_mat = get_transport_objects(df_1, df_2)
+    ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
+    effort_mat = np.multiply(dist_mat, ot_mat)
+
+    N1 = df_1.shape[0]
+    efforts = DMAX*N1*effort_mat.sum(axis=0)
+    return efforts
+

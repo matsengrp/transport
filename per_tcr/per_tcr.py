@@ -12,13 +12,13 @@ from utils import *
 LAMBDA = 0.01
 DMAX = 200
 
-def append_id_column(df, prefix):
-    #df['id'] = ['_'.join([prefix, str(i)]) for i in df.index]
-    df['TCR'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
-    return df
+
+def get_filename_from_subject(subject, file_dir):
+    filename = file_dir + subject + '_B.tcrs'
+    return filename
 
 def get_processed_df(subject, file_dir):
-    filename = file_dir + subject + '_B.tcrs'
+    filename = get_filename_from_subject(subject, file_dir)
     df = get_df_from_file(filename)
     df = append_id_column(df, subject)
     return df
@@ -51,14 +51,9 @@ def do_randomization_test(df_1, df_2, method_type, trial_count=100):
         df_1_trial.iloc[:, [0, 1]].to_csv(trial_file_1, header=False, index=False)
         df_2_trial.iloc[:, [0, 1]].to_csv(trial_file_2, header=False, index=False)
 
-        mass_1, tcrs_1 = get_mass_objects(df_1_trial, "uniform")
-        mass_2, tcrs_2 = get_mass_objects(df_2_trial, "uniform")
-
         dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)/DMAX
-        ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, LAMBDA)
-        effort_mat = np.multiply(dist_mat, ot_mat)
 
-        efforts = DMAX*N1*effort_mat.sum(axis=0)
+        efforts = get_effort_scores(df_1_trial, df_2_trial, dist_mat)
 
         for tcr, score in zip(df_2_trial['TCR'], efforts):
             if tcr in df_2_tcrs:
@@ -134,7 +129,25 @@ if __name__ == "__main__":
     cd4_df = get_processed_df(cd4_subject, file_dir)
     dn_df = get_processed_df(dn_subject, file_dir)
     cd8_df = get_processed_df(cd8_subject, file_dir)
-    method_type="neighborhood_means"
+    method_type="neighborhood_sums"
+
+    observed_mass_1, _ = get_mass_objects(cd4_df, "uniform")
+    observed_mass_2, _ = get_mass_objects(dn_df, "uniform")
+
+    deduplicated_file_1 = "deduplicated_file_1.csv"
+    deduplicated_file_2 = "deduplicated_file_2.csv"
+
+    cd4_df.iloc[:, [0, 1]].to_csv(deduplicated_file_1, header=False, index=False)
+    dn_df.iloc[:, [0, 1]].to_csv(deduplicated_file_2, header=False, index=False)
+
+    obs_dist_mat = get_raw_distance_matrix(
+        deduplicated_file_1,
+        deduplicated_file_2,
+        db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+        exe='../bin/tcrdists',
+        verbose=False)/DMAX
+    obs_scores = get_effort_scores(cd4_df, dn_df, obs_dist_mat)
+
     result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
 
     # Downsample all score distributions to smallest observed count
@@ -151,4 +164,11 @@ if __name__ == "__main__":
         os.makedirs(results_dir)
     with open(results_dir + "/per_tcr.json", 'w') as fp:
         json.dump(mean_result, fp)
+
+
+    z_scores = defaultdict()
+    for obs_score, sim_scores, tcr in zip(obs_scores, result.values(), dn_df['TCR']):
+        z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
+    with open(results_dir + "/z_scores.json", 'w') as fp:
+        json.dump(z_scores, fp)
     import pdb; pdb.set_trace()
