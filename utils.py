@@ -21,7 +21,16 @@ def jaccard_similarity(list_a, list_b):
     return numerator/denominator
 
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db=db, exe=exe, dedup=False):
+def get_raw_distance_matrix( 
+    f1,
+    f2,
+    as_pandas_dataframe=False,
+    index_column=None,
+    verbose=True,
+    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+    exe='bin/tcrdists',
+    dedup=False
+):
     if dedup:
         df_1 = get_df_from_file(f1)
         f1 = "dedup_1.csv"

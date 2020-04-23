@@ -117,7 +117,7 @@ def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
 ## loop over the foreground repertoires (but actually we only do the first one, see early exit below)
 ## could run the full loop...
 
-cd4_subject = 'CD4_20_B.tcrs'
+cd4_subject = 'CD4_16_B.tcrs'
 dn_subject = 'DN_18_B.tcrs'
 
 file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'

@@ -6,7 +6,8 @@ import sys
 
 import ot
 
-sys.path.append('..')
+sys.path.append('.')
+
 from utils import *
 
 LAMBDA = 0.01
@@ -20,7 +21,7 @@ def get_filename_from_subject(subject, file_dir):
 def get_processed_df(subject, file_dir):
     filename = get_filename_from_subject(subject, file_dir)
     df = get_df_from_file(filename)
-    df = append_id_column(df, subject)
+    df = append_id_column(df)
     return df
 
 def split_datasets(full_df, N1, N2, deduplicate=True):
@@ -45,15 +46,7 @@ def do_randomization_test(df_1, df_2, method_type, trial_count=100):
     for trial in range(trial_count):
         df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, deduplicate=True)
 
-        trial_file_1 = "trial_file_1.csv"
-        trial_file_2 = "trial_file_2.csv"
-
-        df_1_trial.iloc[:, [0, 1]].to_csv(trial_file_1, header=False, index=False)
-        df_2_trial.iloc[:, [0, 1]].to_csv(trial_file_2, header=False, index=False)
-
-        dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)/DMAX
-
-        efforts = get_effort_scores(df_1_trial, df_2_trial, dist_mat)
+        efforts = get_effort_scores(df_1_trial, df_2_trial)
 
         for tcr, score in zip(df_2_trial['TCR'], efforts):
             if tcr in df_2_tcrs:
@@ -87,7 +80,7 @@ def do_old_randomization_test(df_1, df_2, method_type, trial_count=5):
             mass_1, _ = get_mass_objects(df_1_trial, "uniform")
             mass_2, _ = get_mass_objects(df_2_trial, "uniform")
 
-            dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)/DMAX
+            dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, verbose=False)/DMAX
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, LAMBDA)
             effort_mat = np.multiply(dist_mat, ot_mat)
 
@@ -101,12 +94,8 @@ def do_old_randomization_test(df_1, df_2, method_type, trial_count=5):
 
             tcr_position = np.where(df_2_trial['id'] == tcr_id)[0].tolist()[0]
 
-            if method_type is "neighborhood_means":
-                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
-                ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
-                tcr_effort = np.mean(efforts[ii_nbrhood_mask])
             if method_type is "neighborhood_sums":
-                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
+                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, verbose=False)
                 ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
                 tcr_effort = np.sum(efforts[ii_nbrhood_mask])
             elif method_type is "absolute":
@@ -120,8 +109,8 @@ if __name__ == "__main__":
     main_dir = '/home/bolson2/sync/within_gene/'
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
-    cd4_subject = 'CD4_20'
-    dn_subject = 'DN_18' # 797 tcrs
+    cd4_subject = 'CD4_16'
+    dn_subject = 'DN_18'
     cd8_subject = 'CD8_15'
 
     NEIGHBOR_CUTOFF = 50.5
@@ -131,22 +120,7 @@ if __name__ == "__main__":
     cd8_df = get_processed_df(cd8_subject, file_dir)
     method_type="neighborhood_sums"
 
-    observed_mass_1, _ = get_mass_objects(cd4_df, "uniform")
-    observed_mass_2, _ = get_mass_objects(dn_df, "uniform")
-
-    deduplicated_file_1 = "deduplicated_file_1.csv"
-    deduplicated_file_2 = "deduplicated_file_2.csv"
-
-    cd4_df.iloc[:, [0, 1]].to_csv(deduplicated_file_1, header=False, index=False)
-    dn_df.iloc[:, [0, 1]].to_csv(deduplicated_file_2, header=False, index=False)
-
-    obs_dist_mat = get_raw_distance_matrix(
-        deduplicated_file_1,
-        deduplicated_file_2,
-        db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
-        exe='../bin/tcrdists',
-        verbose=False)/DMAX
-    obs_scores = get_effort_scores(cd4_df, dn_df, obs_dist_mat)
+    obs_scores = get_effort_scores(cd4_df, dn_df)
 
     result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
 
