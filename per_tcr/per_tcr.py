@@ -6,31 +6,55 @@ import sys
 
 import ot
 
-sys.path.append('..')
+sys.path.append('.')
+
 from utils import *
 
 LAMBDA = 0.01
 DMAX = 200
 
-def append_id_column(df, prefix):
-    df['id'] = ['_'.join([prefix, str(i)]) for i in df.index]
-    return df
+
+def get_filename_from_subject(subject, file_dir):
+    filename = file_dir + subject + '_B.tcrs'
+    return filename
 
 def get_processed_df(subject, file_dir):
-    filename = file_dir + subject + '_B.tcrs'
+    filename = get_filename_from_subject(subject, file_dir)
     df = get_df_from_file(filename)
-    df = append_id_column(df, subject)
+    df = append_id_column(df)
     return df
 
-def split_datasets(full_df, N1, N2, tcr_index):
+def split_datasets(full_df, N1, N2, deduplicate=True):
     indices_to_split = full_df.index.tolist()
-    indices_to_split.remove(tcr_index) # Ensure tcr_index is not in df_1_trial, and necessarily is in df_2_trial
     df_1_trial_indices = sample(indices_to_split, N1)
     df_1_trial = full_df.iloc[df_1_trial_indices]
     df_2_trial = full_df.iloc[~full_df.index.isin(df_1_trial_indices)]
+
+    if deduplicate:
+        df_1_trial = df_1_trial.drop_duplicates()
+        df_2_trial = df_2_trial.drop_duplicates()
+
     return df_1_trial, df_2_trial
 
-def do_randomization_test(df_1, df_2, method_type, trial_count=2):
+def do_randomization_test(df_1, df_2, method_type, trial_count=100):
+    full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
+    N1 = df_1.shape[0]
+    N2 = df_2.shape[0]
+    df_2_tcrs = list(df_2['TCR'])
+    effort_dict = {tcr: [] for tcr in df_2_tcrs}
+
+    for trial in range(trial_count):
+        df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, deduplicate=True)
+
+        efforts = get_effort_scores(df_1_trial, df_2_trial)
+
+        for tcr, score in zip(df_2_trial['TCR'], efforts):
+            if tcr in df_2_tcrs:
+                effort_dict[tcr].append(score)
+
+    return effort_dict
+
+def do_old_randomization_test(df_1, df_2, method_type, trial_count=5):
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
@@ -56,22 +80,22 @@ def do_randomization_test(df_1, df_2, method_type, trial_count=2):
             mass_1, _ = get_mass_objects(df_1_trial, "uniform")
             mass_2, _ = get_mass_objects(df_2_trial, "uniform")
 
-            dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)/DMAX
+            dist_mat = get_raw_distance_matrix(trial_file_1, trial_file_2, verbose=False)/DMAX
             ot_mat = ot.sinkhorn(mass_1, mass_2, dist_mat, LAMBDA)
             effort_mat = np.multiply(dist_mat, ot_mat)
 
             efforts = DMAX*N1*effort_mat.sum(axis=0)
             assert efforts.shape[0] == N2
 
+            trial_effort_dict = dict(zip(df_2_trial['TCR'], efforts))
+            for tcr, score in trial_effort_dict:
+                if tcr in df_2['TCR']:
+                    effort_dict[tcr].append(score)
 
             tcr_position = np.where(df_2_trial['id'] == tcr_id)[0].tolist()[0]
 
-            if method_type is "neighborhood_means":
-                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
-                ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
-                tcr_effort = np.mean(efforts[ii_nbrhood_mask])
             if method_type is "neighborhood_sums":
-                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse', exe='../bin/tcrdists', verbose=False)
+                dist_mat_df_2 = get_raw_distance_matrix(trial_file_2, trial_file_2, verbose=False)
                 ii_nbrhood_mask = (dist_mat_df_2[:, tcr_position] < NEIGHBOR_CUTOFF)
                 tcr_effort = np.sum(efforts[ii_nbrhood_mask])
             elif method_type is "absolute":
@@ -85,20 +109,40 @@ if __name__ == "__main__":
     main_dir = '/home/bolson2/sync/within_gene/'
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
-    cd4_subject = 'CD4_20'
-    dn_subject = 'DN_10' # 797 tcrs
+    cd4_subject = 'CD4_16'
+    dn_subject = 'DN_18'
     cd8_subject = 'CD8_15'
 
-    NEIGHBOR_CUTOFF = 48.5
+    NEIGHBOR_CUTOFF = 50.5
     
     cd4_df = get_processed_df(cd4_subject, file_dir)
     dn_df = get_processed_df(dn_subject, file_dir)
     cd8_df = get_processed_df(cd8_subject, file_dir)
-    method_type="neighborhood_means"
+    method_type="neighborhood_sums"
+
+    obs_scores = get_effort_scores(cd4_df, dn_df)
+
     result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
+
+    # Downsample all score distributions to smallest observed count
+    min_sample_size = np.min([len(x) for x in result.values()])
+    for tcr, scores in result.items():
+        result[tcr] = sample(scores, min_sample_size)
+
+
+    # Finally, compute the mean score for each TCR:
+    mean_result = {tcr: np.mean(scores) for tcr, scores in result.items()}
+
     results_dir = '/home/bolson2/sync/per_tcr/' + method_type
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     with open(results_dir + "/per_tcr.json", 'w') as fp:
-        json.dump(result, fp)
+        json.dump(mean_result, fp)
 
+
+    z_scores = defaultdict()
+    for obs_score, sim_scores, tcr in zip(obs_scores, result.values(), dn_df['TCR']):
+        z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
+    with open(results_dir + "/z_scores.json", 'w') as fp:
+        json.dump(z_scores, fp)
+    import pdb; pdb.set_trace()
