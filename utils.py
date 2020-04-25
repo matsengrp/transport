@@ -34,10 +34,10 @@ def get_raw_distance_matrix(
     if dedup:
         df_1 = get_df_from_file(f1)
         f1 = "dedup_1.csv"
-        df_1.drop_duplicates().to_csv(f1, header=False, index=False)
+        df_1.iloc[:, [0, 1]].drop_duplicates().to_csv(f1, header=False, index=False)
         df_2 = get_df_from_file(f2)
         f2 = "dedup_2.csv"
-        df_2.drop_duplicates().to_csv(f2, header=False, index=False)
+        df_2.iloc[:, [0, 1]].drop_duplicates().to_csv(f2, header=False, index=False)
     cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
     if verbose:
         print(cmd)
@@ -82,6 +82,9 @@ def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=F
         df['v_gene'] = [collapse_gene_subfamily(gene) for gene in df['v_gene']]
     elif collapse_by_allele:
         df['v_gene'] = [collapse_allele(gene) for gene in df['v_gene']]
+
+    if 'tcr' not in df.columns:
+        df = append_id_column(df)
     return df.drop_duplicates()
 
 def tabulate_gene_frequencies(gene_list, as_probability=True):
@@ -220,7 +223,10 @@ def get_effort_scores(df_1, df_2, LAMBDA=0.1, DMAX=200):
     ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
     effort_mat = np.multiply(dist_mat, ot_mat)
 
-    N1 = df_1.shape[0]
-    efforts = DMAX*N1*effort_mat.sum(axis=0)
+    N2 = df_2.shape[0]
+    efforts = DMAX*N2*effort_mat.sum(axis=0)
+
+    assert len(efforts) == N2
+
     return efforts
 

@@ -122,13 +122,13 @@ dn_subject = 'DN_18_B.tcrs'
 
 file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
-cd4_df = append_id_column(get_df_from_file(os.path.join(file_dir, cd4_subject)))
+cd4_df = get_df_from_file(os.path.join(file_dir, cd4_subject))
 
 
 nbhd_result= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 for repfile1 in fg_repfiles:
-    dn_df = append_id_column(get_df_from_file(repfile1))
+    dn_df = get_df_from_file(repfile1)
     obs_scores = get_effort_scores(cd4_df, dn_df)
 
     tcrs = [x[:-1] for x in open(repfile1,'r')]
@@ -147,8 +147,8 @@ for repfile1 in fg_repfiles:
 
 
     ## compute per-tcr efforts against each of the other repertoires:
-    fg_efforts = [ get_file1_tcr_efforts(repfile1,x) for x in fg_repfiles if x != repfile1 ]
-    bg_efforts = [ get_file1_tcr_efforts(repfile1,x) for x in bg_repfiles if x != repfile1 ]
+    fg_efforts = [ get_effort_scores(get_df_from_file(x), get_df_from_file(repfile1)) for x in fg_repfiles if x != repfile1 ]
+    bg_efforts = [ get_effort_scores(get_df_from_file(x), get_df_from_file(repfile1)) for x in bg_repfiles if x != repfile1 ]
 
 
     T_fg = np.array( fg_efforts ).transpose()
