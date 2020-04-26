@@ -30,55 +30,6 @@ import sys
 sys.path.append(os.getcwd())
 from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_raw_distance_matrix, get_transport_objects
 
-
-## this is the tcrdist-computing executable
-exe = 'bin/tcrdists' #'/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
-#exe = 'bin/tcrdists'
-
-## this is a db-directory needed for the tcrdists calc, for mouse tcrs
-db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse' #'/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
-
-#db = 'data/databases/fake_pubtcrs_db_mouse'
-
-
-# on rhino1:
-seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
-
-
-## fg = foreground, bg = background
-fg_reptag = 'DN'
-bg_reptag = 'CD4'
-chain = 'B'
-
-fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
-bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
-
-lambd = .01
-Dmax = 200 # constant across comparisons
-
-
-nbrcutoffs = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
-
-
-
-#def get_raw_distance_matrix( f1, f2 ):
-#    ''' Returns the tcrdist distance matrix D between tcrs in file f1 and tcrs in file f2
-#    D.shape = (num_f1_tcrs, num_f2_tcrs)
-#    '''
-#    cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
-#    print(cmd)
-#    all_dists = []
-#    for line in os.popen(cmd):
-#        all_dists.append( [float(x) for x in line.split() ] )
-#    N1 = len(all_dists)
-#    N2 = len(all_dists[0])
-#    for dists in all_dists:
-#        assert len(dists) == N2
-#
-#    D = np.array(all_dists)
-#    print('loaded dists',D.shape)
-#    return D
-
 def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
     ''' Return the row sums of the effort matrix, ie the per-tcr efforts for each tcr in repfile1
 
@@ -111,6 +62,35 @@ def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
     assert repfile1_efforts.shape[0] == N1
 
     return repfile1_efforts
+
+
+## this is the tcrdist-computing executable
+exe = 'bin/tcrdists' #'/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
+#exe = 'bin/tcrdists'
+
+## this is a db-directory needed for the tcrdists calc, for mouse tcrs
+db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse' #'/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
+
+#db = 'data/databases/fake_pubtcrs_db_mouse'
+
+
+# on rhino1:
+seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
+
+
+## fg = foreground, bg = background
+fg_reptag = 'DN'
+bg_reptag = 'CD4'
+chain = 'B'
+
+fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
+bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
+
+lambd = .01
+Dmax = 200 # constant across comparisons
+
+
+nbrcutoffs = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
 
 
 
