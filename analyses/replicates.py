@@ -28,7 +28,7 @@ from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
-from utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_raw_distance_matrix, get_transport_objects
+from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_raw_distance_matrix, get_transport_objects
 
 
 ## this is the tcrdist-computing executable

@@ -8,7 +8,7 @@ import ot
 
 sys.path.append('.')
 
-from utils import *
+from python.utils import *
 
 LAMBDA = 0.01
 DMAX = 200
