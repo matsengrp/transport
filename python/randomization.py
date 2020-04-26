@@ -1,18 +1,9 @@
-from collections import defaultdict
-import json
-import os
 from random import sample
-import sys
 
-import ot
+import numpy as np
+import pandas as pd
 
-sys.path.append('.')
-
-from python.utils import *
-
-LAMBDA = 0.01
-DMAX = 200
-
+from python.utils import append_id_column, get_df_from_file, get_effort_scores
 
 def get_filename_from_subject(subject, file_dir):
     filename = file_dir + subject + '_B.tcrs'
@@ -103,46 +94,3 @@ def do_old_randomization_test(df_1, df_2, method_type, trial_count=5):
             
             effort_dict[tcr_id][tcr_v_gene][tcr_cdr3].append(tcr_effort)
     return effort_dict
-
-
-if __name__ == "__main__":
-    main_dir = '/home/bolson2/sync/within_gene/'
-    file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
-
-    cd4_subject = 'CD4_16'
-    dn_subject = 'DN_18'
-    cd8_subject = 'CD8_15'
-
-    NEIGHBOR_CUTOFF = 50.5
-    
-    cd4_df = get_processed_df(cd4_subject, file_dir)
-    dn_df = get_processed_df(dn_subject, file_dir)
-    cd8_df = get_processed_df(cd8_subject, file_dir)
-    method_type="neighborhood_sums"
-
-    obs_scores = get_effort_scores(cd4_df, dn_df)
-
-    result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
-
-    # Downsample all score distributions to smallest observed count
-    min_sample_size = np.min([len(x) for x in result.values()])
-    for tcr, scores in result.items():
-        result[tcr] = sample(scores, min_sample_size)
-
-
-    # Finally, compute the mean score for each TCR:
-    mean_result = {tcr: np.mean(scores) for tcr, scores in result.items()}
-
-    results_dir = '/home/bolson2/sync/per_tcr/' + method_type
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
-    with open(results_dir + "/per_tcr.json", 'w') as fp:
-        json.dump(mean_result, fp)
-
-
-    z_scores = defaultdict()
-    for obs_score, sim_scores, tcr in zip(obs_scores, result.values(), dn_df['TCR']):
-        z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
-    with open(results_dir + "/z_scores.json", 'w') as fp:
-        json.dump(z_scores, fp)
-    import pdb; pdb.set_trace()
