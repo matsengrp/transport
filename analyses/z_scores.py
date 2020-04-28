@@ -8,8 +8,8 @@ import numpy as np
 
 sys.path.append('.')
 
-from python.randomization import do_randomization_test, get_filename_from_subject, get_processed_df, split_datasets
-from python.utils import get_effort_scores
+from python.randomization import do_randomization_test, get_filename_from_subject, split_datasets
+from python.utils import get_df_from_file, get_effort_scores
 
 LAMBDA = 0.01
 DMAX = 200
@@ -24,14 +24,15 @@ if __name__ == "__main__":
 
     NEIGHBOR_CUTOFF = 50.5
     
-    cd4_df = get_processed_df(cd4_subject, file_dir)
-    dn_df = get_processed_df(dn_subject, file_dir)
-    cd8_df = get_processed_df(cd8_subject, file_dir)
-    method_type="neighborhood_sums"
+    cd4_filename = get_filename_from_subject(cd4_subject, file_dir)
+    dn_filename = get_filename_from_subject(dn_subject, file_dir)
+    cd8_filename = get_filename_from_subject(cd8_subject, file_dir)
 
-    obs_scores = get_effort_scores(cd4_df, dn_df)
+    obs_scores = get_effort_scores(cd4_filename, dn_filename)
 
-    result = do_randomization_test(cd4_df, dn_df, method_type=method_type)
+    cd4_df = get_df_from_file(cd4_filename)
+    dn_df = get_df_from_file(dn_filename)
+    result = do_randomization_test(cd4_df, dn_df)
 
     # Downsample all score distributions to smallest observed count
     min_sample_size = np.min([len(x) for x in result.values()])
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     # Finally, compute the mean score for each TCR:
     mean_result = {tcr: np.mean(scores) for tcr, scores in result.items()}
 
-    results_dir = '/home/bolson2/sync/per_tcr/' + method_type
+    results_dir = '/home/bolson2/sync/per_tcr/'
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     with open(results_dir + "/per_tcr.json", 'w') as fp:
@@ -49,7 +50,8 @@ if __name__ == "__main__":
 
 
     z_scores = defaultdict()
-    for obs_score, sim_scores, tcr in zip(obs_scores, result.values(), dn_df['TCR']):
+    dn_tcrs = list(dict.fromkeys(dn_df['tcr']))
+    for obs_score, sim_scores, tcr in zip(obs_scores.values(), result.values(), dn_tcrs):
         z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
-    with open(results_dir + "/z_scores.json", 'w') as fp:
+    with open(results_dir + "rand_z_scores.json", 'w') as fp:
         json.dump(z_scores, fp)

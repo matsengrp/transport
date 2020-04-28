@@ -109,7 +109,7 @@ nbhd_result= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 for repfile1 in fg_repfiles:
     dn_df = get_df_from_file(repfile1)
-    obs_scores = get_effort_scores(cd4_file, repfile1)
+    obs_scores = get_effort_scores(cd4_file, repfile1).values()
 
     tcrs = [x[:-1] for x in open(repfile1,'r')]
     unique_tcrs = list(dict.fromkeys(tcrs))
@@ -130,8 +130,8 @@ for repfile1 in fg_repfiles:
 
 
     ## compute per-tcr efforts against each of the other repertoires:
-    fg_efforts = [ get_effort_scores(x, repfile1) for x in fg_repfiles if x != repfile1 ]
-    bg_efforts = [ get_effort_scores(x, repfile1) for x in bg_repfiles if x != repfile1 ]
+    fg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in fg_repfiles if x != repfile1 ]
+    bg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in bg_repfiles if x != repfile1 ]
 
 
     T_fg = np.array( fg_efforts ).transpose()
@@ -211,5 +211,5 @@ for repfile1 in fg_repfiles:
     with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
         json.dump(nbhd_result, fp)
 
-with open("/home/bolson2/sync/per_tcr/z_scores.json", "w") as fp:
+with open("/home/bolson2/sync/per_tcr/replicate_z_scores.json", "w") as fp:
     json.dump(z_score_dict, fp)

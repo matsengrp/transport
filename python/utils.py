@@ -81,7 +81,7 @@ def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=F
 
     if 'tcr' not in df.columns:
         df = append_id_column(df)
-    return df.drop_duplicates()
+    return df
 
 def tabulate_gene_frequencies(gene_list, as_probability=True):
     gene_list_len = len(gene_list)
@@ -119,7 +119,7 @@ def get_mass_objects(df, distribution_type):
         from collections import Counter
         N = df.shape[0]
         df = append_id_column(df)
-        counter = Counter(df['TCR'])
+        counter = Counter(df['tcr'])
         unique_tcrs = counter.keys()
         mass = [count/N for count in counter.values()]
         return (mass, unique_tcrs)
@@ -162,21 +162,22 @@ def get_transport_objects(
         exe='bin/tcrdists',
         verbose=False)/DMAX
 
-    return mass_1, mass_2, dist_mat, df_2.shape[0]
+    return mass_1, mass_2, dist_mat
 
 def append_id_column(df):
-    if 'TCR' not in df.columns:
-        df['TCR'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
+    if 'tcr' not in df.columns:
+        df['tcr'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
     return df
 
 def get_effort_scores(file_1, file_2, LAMBDA=0.1, DMAX=200):
-    mass_1, mass_2, dist_mat, N2 = get_transport_objects(file_1, file_2)
+    mass_1, mass_2, dist_mat = get_transport_objects(file_1, file_2)
     ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
     effort_mat = np.multiply(dist_mat, ot_mat)
 
+    N2 = len(mass_2[0])
     efforts = DMAX*N2*effort_mat.sum(axis=0)
 
     assert len(efforts) == N2
 
-    return efforts
+    return {tcr: effort for tcr, effort in zip(mass_2[1], efforts)}
 
