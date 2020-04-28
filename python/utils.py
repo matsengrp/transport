@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from os import popen
+import os
 import ot
 
 Dmax = 200 # constant across comparisons
@@ -24,20 +24,22 @@ def get_raw_distance_matrix(
     verbose=True,
     db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
     exe='bin/tcrdists',
-    dedup=False
+    output_dir="tmp_output",
 ):
-    if dedup:
-        df_1 = get_df_from_file(f1)
-        f1 = "dedup_1.csv"
-        df_1.iloc[:, [0, 1]].drop_duplicates().to_csv(f1, header=False, index=False)
-        df_2 = get_df_from_file(f2)
-        f2 = "dedup_2.csv"
-        df_2.iloc[:, [0, 1]].drop_duplicates().to_csv(f2, header=False, index=False)
-    cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    cmd = '{} -i {} -j {} -d {} --terse'.format(
+        exe,
+        os.path.join(output_dir, f1),
+        os.path.join(output_dir, f2),
+        db,
+    )
     if verbose:
         print(cmd)
     all_dists = []
-    for line in popen(cmd):
+    for line in os.popen(cmd):
         try:
             all_dists.append( [float(x) for x in line.split() ] )
         except ValueError:
@@ -60,7 +62,6 @@ def get_raw_distance_matrix(
 
             D.index = df_1.iloc[:, index_column]
             D.columns = df_2.iloc[:, index_column]
-
 
     return D
 
@@ -126,43 +127,53 @@ def get_mass_objects(df, distribution_type):
         raise Exception("Unsupported distribution_type")
     return (mass, gene_mass_dict)
 
+def write_deduplicated_file(df, filename, output_dir="tmp_output"):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    deduplicated_file = os.path.join(output_dir, filename)
+    df.iloc[:, [0, 1]].drop_duplicates().to_csv(deduplicated_file, header=False, index=False)
+
 def get_transport_objects(
-    df_1,
-    df_2,
+    filename_1,
+    filename_2,
     distribution_type="uniform",
     DMAX=200,
     db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
     exe='bin/tcrdists',
+    output_dir="tmp_output",
 ):
+    df_1 = get_df_from_file(filename_1)
+    df_2 = get_df_from_file(filename_2)
+
     mass_1 = get_mass_objects(df_1, distribution_type=distribution_type)
     mass_2 = get_mass_objects(df_2, distribution_type=distribution_type)
 
-    deduplicated_file_1 = "deduplicated_file_1.csv"
-    deduplicated_file_2 = "deduplicated_file_2.csv"
+    df_1_deduplicated_filename = "deduplicated_df_1.csv"
+    df_2_deduplicated_filename = "deduplicated_df_2.csv"
 
-    df_1.iloc[:, [0, 1]].to_csv(deduplicated_file_1, header=False, index=False)
-    df_2.iloc[:, [0, 1]].to_csv(deduplicated_file_2, header=False, index=False)
+    write_deduplicated_file(df_1, df_1_deduplicated_filename, output_dir)
+    write_deduplicated_file(df_2, df_2_deduplicated_filename, output_dir)
 
     dist_mat = get_raw_distance_matrix(
-        deduplicated_file_1,
-        deduplicated_file_2,
+        df_1_deduplicated_filename,
+        df_2_deduplicated_filename,
         db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
         exe='bin/tcrdists',
         verbose=False)/DMAX
 
-    return mass_1, mass_2, dist_mat
+    return mass_1, mass_2, dist_mat, df_2.shape[0]
 
 def append_id_column(df):
     if 'TCR' not in df.columns:
         df['TCR'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
     return df
 
-def get_effort_scores(df_1, df_2, LAMBDA=0.1, DMAX=200):
-    mass_1, mass_2, dist_mat = get_transport_objects(df_1, df_2)
+def get_effort_scores(file_1, file_2, LAMBDA=0.1, DMAX=200):
+    mass_1, mass_2, dist_mat, N2 = get_transport_objects(file_1, file_2)
     ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
     effort_mat = np.multiply(dist_mat, ot_mat)
 
-    N2 = df_2.shape[0]
     efforts = DMAX*N2*effort_mat.sum(axis=0)
 
     assert len(efforts) == N2
