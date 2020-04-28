@@ -28,7 +28,7 @@ def split_datasets(full_df, N1, N2, filename_1, filename_2):
 
     return df_1_trial, df_2_trial
 
-def do_randomization_test(df_1, df_2, trial_count=100, output_dir="output_tmp"):
+def do_randomization_test(df_1, df_2, trial_count=100, output_dir="tmp_output"):
     full_df = pd.concat([df_1, df_2], axis=0).reset_index(drop=True)
     N1 = df_1.shape[0]
     N2 = df_2.shape[0]
