@@ -1,12 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from os import popen
+import os
+import ot
 
-
-db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
-
-exe = 'bin/tcrdists'
 Dmax = 200 # constant across comparisons
 
 def sort_dict(d: dict):
@@ -19,13 +16,30 @@ def jaccard_similarity(list_a, list_b):
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
 
+def get_raw_distance_matrix( 
+    f1,
+    f2,
+    as_pandas_dataframe=False,
+    index_column=None,
+    verbose=True,
+    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+    exe='bin/tcrdists',
+    output_dir="tmp_output",
+):
 
-def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=None, verbose=True, db=db, exe=exe):
-    cmd = '{} -i {} -j {} -d {} --terse'.format( exe, f1, f2, db )
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    cmd = '{} -i {} -j {} -d {} --terse'.format(
+        exe,
+        os.path.join(output_dir, f1),
+        os.path.join(output_dir, f2),
+        db,
+    )
     if verbose:
         print(cmd)
     all_dists = []
-    for line in popen(cmd):
+    for line in os.popen(cmd):
         try:
             all_dists.append( [float(x) for x in line.split() ] )
         except ValueError:
@@ -49,7 +63,6 @@ def get_raw_distance_matrix( f1, f2, as_pandas_dataframe=False, index_column=Non
             D.index = df_1.iloc[:, index_column]
             D.columns = df_2.iloc[:, index_column]
 
-
     return D
 
 def collapse_allele(gene: str):
@@ -65,7 +78,10 @@ def get_df_from_file(filename, collapse_by_allele=False, collapse_by_subfamily=F
         df['v_gene'] = [collapse_gene_subfamily(gene) for gene in df['v_gene']]
     elif collapse_by_allele:
         df['v_gene'] = [collapse_allele(gene) for gene in df['v_gene']]
-    return df.drop_duplicates()
+
+    if 'tcr' not in df.columns:
+        df = append_id_column(df)
+    return df
 
 def tabulate_gene_frequencies(gene_list, as_probability=True):
     gene_list_len = len(gene_list)
@@ -89,22 +105,6 @@ def collapse_duplicates(v):
             starting_indices.append(i)
     return starting_indices
 
-def get_gene_distance_matrix(filename, collapse_alleles=False):
-    df = pd.read_csv(filename, header=None, sep=" ")
-    gene_names = df.iloc[:, 1].values
-    df = df.drop(columns=[0, 1])
-
-    if collapse_alleles:
-        gene_names = [collapse_allele(gene_name[0]) for gene_name in gene_names]
-        indices = collapse_duplicates(gene_names)
-        df = df.iloc[indices, indices]
-        df.columns = [gene_names[i] for i in indices]
-    else:
-        df.columns = gene_names
-
-    df.index = df.columns
-    return df
-
 def get_mass_objects(df, distribution_type):
     if distribution_type == "inverse_to_v_gene":
         def get_gene_masses(gene_list):
@@ -114,50 +114,70 @@ def get_mass_objects(df, distribution_type):
 
         mass = get_gene_weighted_mass_distribution(df)
         gene_mass_dict = get_gene_masses(df['v_gene'])
+        return (mass, gene_mass_dict)
     elif distribution_type == "uniform":
+        from collections import Counter
         N = df.shape[0]
-        mass = np.ones((N, ))/N
-        gene_mass_dict = tabulate_gene_frequencies(list(df['v_gene']))
+        df = append_id_column(df)
+        counter = Counter(df['tcr'])
+        unique_tcrs = counter.keys()
+        mass = [count/N for count in counter.values()]
+        return (mass, unique_tcrs)
     else:
         raise Exception("Unsupported distribution_type")
     return (mass, gene_mass_dict)
 
-def get_gene_transfer_matrix(df_1, df_2, ot_mat):
-    N1 = df_1.shape[0]
-    N2 = df_2.shape[0]
-    gene_transfer_map = {}
-    for i in range(0, N1):
-        for j in range(0, N2):
-            gene_i = df_1.iloc[i, 0]
-            gene_j = df_2.iloc[j, 0]
-            if gene_i not in gene_transfer_map:
-                gene_transfer_map[gene_i] = {}
-            if gene_j not in gene_transfer_map[gene_i]:
-                gene_transfer_map[gene_i][gene_j] = 0
-            # Add the mass transfered from tcr_i to tcr_j to the transfer map for (gene_i, gene_j)
-            gene_transfer_map[gene_i][gene_j] += ot_mat[i, j]
+def write_deduplicated_file(df, filename, output_dir="tmp_output"):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    gene_transfer_matrix = pd.DataFrame(gene_transfer_map)
-    return(gene_transfer_matrix)
+    deduplicated_file = os.path.join(output_dir, filename)
+    df.iloc[:, [0, 1]].drop_duplicates().to_csv(deduplicated_file, header=False, index=False)
 
-def get_scoring_quantities(gene_transfer_matrix, vb_matrix):
-    vb_distances = []
-    transports = []
-    row_colors = []
-    column_colors = []
-    scores = {}
-    for i in range(0, vb_matrix.shape[0]):
-        row_gene = vb_matrix.index[i]
-        scores[row_gene] = {}
-        for j in range(0, vb_matrix.shape[1]):
-            column_gene = vb_matrix.columns[j]
-            vb_dist_ij = vb_matrix.iloc[i, j]
-            transport_ij = gene_transfer_matrix.iloc[i, j]
-            vb_distances.append(vb_dist_ij)
-            transports.append(transport_ij)
-            row_colors.append(row_gene)
-            column_colors.append(column_gene)
-            scores[row_gene][column_gene] = transport_ij*vb_dist_ij
+def get_transport_objects(
+    filename_1,
+    filename_2,
+    distribution_type="uniform",
+    DMAX=200,
+    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+    exe='bin/tcrdists',
+    output_dir="tmp_output",
+):
+    df_1 = get_df_from_file(filename_1)
+    df_2 = get_df_from_file(filename_2)
 
-    score_matrix = pd.DataFrame(scores)
-    return (vb_distances, transports, column_colors, score_matrix)
+    mass_1 = get_mass_objects(df_1, distribution_type=distribution_type)
+    mass_2 = get_mass_objects(df_2, distribution_type=distribution_type)
+
+    df_1_deduplicated_filename = "deduplicated_df_1.csv"
+    df_2_deduplicated_filename = "deduplicated_df_2.csv"
+
+    write_deduplicated_file(df_1, df_1_deduplicated_filename, output_dir)
+    write_deduplicated_file(df_2, df_2_deduplicated_filename, output_dir)
+
+    dist_mat = get_raw_distance_matrix(
+        df_1_deduplicated_filename,
+        df_2_deduplicated_filename,
+        db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
+        exe='bin/tcrdists',
+        verbose=False)/DMAX
+
+    return mass_1, mass_2, dist_mat
+
+def append_id_column(df):
+    if 'tcr' not in df.columns:
+        df['tcr'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
+    return df
+
+def get_effort_scores(file_1, file_2, LAMBDA=0.1, DMAX=200):
+    mass_1, mass_2, dist_mat = get_transport_objects(file_1, file_2)
+    ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
+    effort_mat = np.multiply(dist_mat, ot_mat)
+
+    N2 = len(mass_2[0])
+    efforts = DMAX*N2*effort_mat.sum(axis=0)
+
+    assert len(efforts) == N2
+
+    return {tcr: effort for tcr, effort in zip(mass_2[1], efforts)}
+

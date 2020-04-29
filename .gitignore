@@ -1,5 +1,6 @@
 bin
-_ignore
 .gitconfig
+_ignore
 .ipynb_checkpoints
 *.pyc
+tmp_output
