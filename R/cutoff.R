@@ -25,22 +25,12 @@ if(T) {
     dat[["Subject"]] <- dat[["Subject"]] %>% 
         sapply(gsub, pattern=".tcrs", replacement="")
     
-    dat[dat$Group == "background", ]$Group <- "tmp"
-    dat[dat$Group == "foreground", ]$Group <- "background"
-    dat[dat$Group == "tmp", ]$Group <- "foreground"
-
     fg_dat <- dat[dat$Group == "foreground", ]
     bg_dat <- dat[dat$Group == "background", ]
     
     subjects <- dat$Subject %>% 
         unique
 }
-
-#rand_dict <- fromJSON(file=file.path("neighborhood_sums", "per_tcr.json"))
-#rand_df <- rand_dict %>% melt
-#names(rand_df) <- c("Score", "CDR3", "Gene", "TCR_ID", "TCR"F)
-#rand_df[["TCR"]] <- Map(function(x, y) { paste(x, y, sep=",") }, rand_df[["Gene"]], rand_df[["CDR3"]])
-#stop()
 
 if(T) {
     dist_mats <- {}
