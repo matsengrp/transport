@@ -79,8 +79,8 @@ seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
 
 
 ## fg = foreground, bg = background
-fg_reptag = 'DN'
-bg_reptag = 'CD4'
+fg_reptag = 'CD4'
+bg_reptag = 'DN'
 chain = 'B'
 
 fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
@@ -107,7 +107,7 @@ cd4_file = os.path.join(file_dir, cd4_subject)
 
 nbhd_result= defaultdict(dict)
 z_score_dict = defaultdict(dict)
-for repfile1 in fg_repfiles:
+for repfile1 in bg_repfiles:
     dn_df = get_df_from_file(repfile1)
     obs_scores = get_effort_scores(cd4_file, repfile1).values()
 
@@ -130,15 +130,15 @@ for repfile1 in fg_repfiles:
 
 
     ## compute per-tcr efforts against each of the other repertoires:
-    fg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in fg_repfiles if x != repfile1 ]
+    fg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in fg_repfiles ]
     bg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in bg_repfiles if x != repfile1 ]
 
 
     T_fg = np.array( fg_efforts ).transpose()
     T_bg = np.array( bg_efforts ).transpose()
 
-    assert T_fg.shape == (N1,len(fg_repfiles)-1)
-    assert T_bg.shape == (N1,len(bg_repfiles))
+    assert T_fg.shape == (N1, len(fg_repfiles))
+    assert T_bg.shape == (N1, len(bg_repfiles) - 1)
 
     T_fg_means = np.mean(T_fg,axis=1)
     T_fg_stddevs = np.std(T_fg,axis=1)
