@@ -76,7 +76,8 @@ extract_tcrs_from_mds_cluster <- function(
                                           xrange,
                                           yrange,
                                           score_threshold=1800,
-                                          radius=50.5
+                                          radius=50.5,
+                                          score_column="score"
                                          ) {
    tmp <- ref_dat %>%
        build_mds_dataframe(radius=radius, subjects=subject)
@@ -84,7 +85,7 @@ extract_tcrs_from_mds_cluster <- function(
                        tmp[["x1"]] < xrange[2] &
                        tmp[["x2"]] > yrange[1] &
                        tmp[["x2"]] < yrange[2] &
-                       tmp[["score"]] > score_threshold,
+                       tmp[[score_column]] > score_threshold,
                       ]
    tcrs <- dat[dat[["Subject"]] == subject, ][["TCR"]] %>% 
        rle %$%
@@ -108,6 +109,7 @@ build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FAL
                                   label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label),
                                   tcr=subject_radius_dat[["TCR"]]
                                  )
+        subject_dat[["label"]] <- factor(subject_dat[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida", "X"))
 
         if(add_extra_metrics) {
             subject_dat[["relative_score"]] <- subject_dat[["score"]]/max(subject_dat[["score"]])

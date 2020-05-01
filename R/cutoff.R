@@ -142,7 +142,6 @@ for(subject in subjects) {
        build_mds_dataframe(radius=50.5, subject=subject) %>%
        cbind.data.frame(Group="background")
     snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
-    snapshot_dat[["label"]] <- factor(snapshot_dat[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida", "X"))
     snapshot_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + geom_point(aes(shape=label)) +
            scale_colour_viridis_c()  +
