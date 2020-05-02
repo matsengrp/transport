@@ -36,28 +36,13 @@ if __name__ == "__main__":
     cd4_df = get_df_from_file(cd4_filename)
     dn_df = get_df_from_file(dn_filename)
 
-    randomization_test = RandomizationTest(cd4_df, dn_df)
+    randomization_test = RandomizationTest(cd4_df, dn_df, obs_scores)
     result = randomization_test.effort_dict
-
-    # Downsample all score distributions to smallest observed count
-    min_sample_size = np.min([len(x) for x in result.values()])
-    for tcr, scores in result.items():
-        result[tcr] = sample(scores, min_sample_size)
-
-    # Finally, compute the mean score for each TCR:
-    mean_result = {tcr: np.mean(scores) for tcr, scores in result.items()}
 
     results_dir = DIRECTORIES[JSON_OUTPUT]
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
 
-    with open(os.path.join(results_dir, "per_tcr.json"), 'w') as fp:
-        json.dump(mean_result, fp)
-
-
-    z_scores = defaultdict()
-    dn_tcrs = list(dict.fromkeys(dn_df['tcr']))
-    for obs_score, sim_scores, tcr in zip(obs_scores.values(), result.values(), dn_tcrs):
-        z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
+    z_scores = {tcr: tcr_info['z_score'] for tcr, tcr_info in result.items()}
     with open(os.path.join(results_dir,  "rand_z_scores.json"), 'w') as fp:
         json.dump(z_scores, fp)

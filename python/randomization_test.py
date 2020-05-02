@@ -1,6 +1,7 @@
 from collections import Counter
 import os
 from random import sample
+from statsmodels.distributions.empirical_distribution import ECDF
 
 import numpy as np
 import pandas as pd
@@ -8,14 +9,17 @@ import pandas as pd
 from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_scorer import TCRScorer
 
+
+
 class RandomizationTest():
     output_dir = DIRECTORIES[TMP_OUTPUT]
     trial_1_file = os.path.join(output_dir, "trial_1.csv")
     trial_2_file = os.path.join(output_dir, "trial_2.csv")
     
-    def __init__(self, df_1, df_2, trial_count=100):
+    def __init__(self, df_1, df_2, observed_scores, trial_count=100):
         self.df_1 = df_1
         self.df_2 = df_2
+        self.observed_scores = observed_scores
         self.N1 = df_1.shape[0]
         self.N2 = df_2.shape[0]
         self.df_2_tcrs = list(dict.fromkeys(self.df_2['tcr']))
@@ -49,3 +53,15 @@ class RandomizationTest():
             for tcr, score in trial_scorer.effort_dict.items():
                 if tcr in self.df_2_tcrs:
                     self.effort_dict[tcr].append(score)
+
+        min_sample_size = np.min([len(x) for x in self.effort_dict.values()])
+
+        for tcr, scores in self.effort_dict.items():
+            downsampled_scores = sample(scores, min_sample_size)
+            tcr_ecdf = ECDF(downsampled_scores)
+            tcr_obs_score = self.observed_scores[tcr]
+            self.effort_dict[tcr] = {
+                "scores": downsampled_scores,
+                "z_score": (tcr_obs_score - np.mean(downsampled_scores))/np.std(downsampled_scores),
+                "p_value": 1 - tcr_ecdf(tcr_obs_score),
+            }
