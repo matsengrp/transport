@@ -1,26 +1,29 @@
-source("plot_utils.R")
+source("R/plot_utils.R")
 
 if(!exists("fg_dat")) {
-    source("cutoff.R")
+    source("R/cutoff.R")
 }
 
 if(!exists("full_dist_mat")) {
+    dist_mat_dir <- "output/dist_matrices"
     full_dist_mat <- read.csv(
-                              paste0(
-                                     "~/sync/per_tcr/dist_matrices/",
-                                     "all_subjects",
-                                     ".csv"
-                                    ),
-                              header=FALSE
-                             )
+        file.path(
+            dist_mat_dir,
+            paste0(
+                "all_subjects",
+                ".csv"
+            )
+        ),
+        header=FALSE
+    )
 }
 
 if(!exists("full_projection")) {
     full_projection <- get_projection(
-            full_dist_mat,
-            projection_method=projection_method,
-            k=2
-        )
+        full_dist_mat,
+        projection_method=projection_method,
+        k=2
+    )
 }
 
 mds_df <- build_mds_dataframe(fg_dat, radius=50.5, subjects=subjects, add_extra_metrics=TRUE)
@@ -35,4 +38,6 @@ full_mds_plot <- full_dist_df %>%
     geom_point() +
     scale_colour_viridis_c() +
     scale_size(range=c(0.1, 2))
-ggsave("full_mds_plot.pdf")
+snapshot_dir = "output/snapshots"
+snapshot_dir %>% dir.create
+ggsave(file.path(snapshot_dir, "full_mds_plot.pdf"))
