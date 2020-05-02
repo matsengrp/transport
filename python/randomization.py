@@ -5,7 +5,8 @@ from random import sample
 import numpy as np
 import pandas as pd
 
-from python.utils import append_id_column, get_df_from_file, get_effort_scores
+from python.tcr_scorer import TCRScorer
+from python.utils import append_id_column, get_df_from_file
 
 def get_filename_from_subject(subject, file_dir):
     filename = file_dir + subject + '_B.tcrs'
@@ -44,9 +45,9 @@ def do_randomization_test(df_1, df_2, trial_count=100, output_dir="tmp_output"):
 
         df_1_trial, df_2_trial = split_datasets(full_df, N1, N2, trial_1_file, trial_2_file)
 
-        effort_scores = get_effort_scores(trial_1_file, trial_2_file)
+        trial_scorer = TCRScorer(file_1=trial_1_file, file_2=trial_2_file)
 
-        for tcr, score in effort_scores.items():
+        for tcr, score in trial_scorer.effort_dict.items():
             if tcr in df_2_tcrs:
                 effort_dict[tcr].append(score)
 

@@ -8,12 +8,10 @@ import numpy as np
 
 sys.path.append('.')
 
-from common.params import DIRECTORIES, JSON_OUTPUT
+from common.params import DIRECTORIES, DMAX, JSON_OUTPUT
 from python.randomization import do_randomization_test, get_filename_from_subject, split_datasets
-from python.utils import get_df_from_file, get_effort_scores
-
-LAMBDA = 0.01
-DMAX = 200
+from python.tcr_scorer import TCRScorer
+from python.utils import get_df_from_file
 
 if __name__ == "__main__":
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
@@ -28,7 +26,8 @@ if __name__ == "__main__":
     dn_filename = get_filename_from_subject(dn_subject, file_dir)
     cd8_filename = get_filename_from_subject(cd8_subject, file_dir)
 
-    obs_scores = get_effort_scores(cd4_filename, dn_filename)
+    obs_scorer = TCRScorer(file_1=cd4_filename, file_2=dn_filename)
+    obs_scores = obs_scorer.effort_dict
 
     cd4_df = get_df_from_file(cd4_filename)
     dn_df = get_df_from_file(dn_filename)

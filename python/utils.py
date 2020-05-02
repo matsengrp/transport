@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import ot
 
+from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_dist import TCRDist
 
 Dmax = 200 # constant across comparisons
@@ -58,78 +59,14 @@ def collapse_duplicates(v):
             starting_indices.append(i)
     return starting_indices
 
-def get_mass_objects(df, distribution_type):
-    if distribution_type == "inverse_to_v_gene":
-        def get_gene_masses(gene_list):
-            unique_genes = list(set(gene_list))
-            gene_mass_dict = {gene: 1/len(unique_genes) for gene in unique_genes}
-            return gene_mass_dict
-
-        mass = get_gene_weighted_mass_distribution(df)
-        gene_mass_dict = get_gene_masses(df['v_gene'])
-        return (mass, gene_mass_dict)
-    elif distribution_type == "uniform":
-        from collections import Counter
-        N = df.shape[0]
-        df = append_id_column(df)
-        counter = Counter(df['tcr'])
-        unique_tcrs = counter.keys()
-        mass = [count/N for count in counter.values()]
-        return (mass, unique_tcrs)
-    else:
-        raise Exception("Unsupported distribution_type")
-    return (mass, gene_mass_dict)
-
-def write_deduplicated_file(df, filename, output_dir="tmp_output"):
+def write_deduplicated_file(df, filename, output_dir=DIRECTORIES[TMP_OUTPUT]):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    deduplicated_file = os.path.join(output_dir, filename)
-    df.iloc[:, [0, 1]].drop_duplicates().to_csv(deduplicated_file, header=False, index=False)
+    df.iloc[:, [0, 1]].drop_duplicates().to_csv(os.path.join(output_dir, filename), header=False, index=False)
 
-def get_transport_objects(
-    filename_1,
-    filename_2,
-    distribution_type="uniform",
-    DMAX=200,
-    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
-    exe='bin/tcrdists',
-    output_dir="tmp_output",
-):
-    df_1 = get_df_from_file(filename_1)
-    df_2 = get_df_from_file(filename_2)
-
-    mass_1 = get_mass_objects(df_1, distribution_type=distribution_type)
-    mass_2 = get_mass_objects(df_2, distribution_type=distribution_type)
-
-    df_1_deduplicated_filename = "deduplicated_df_1.csv"
-    df_2_deduplicated_filename = "deduplicated_df_2.csv"
-
-    write_deduplicated_file(df_1, df_1_deduplicated_filename, output_dir)
-    write_deduplicated_file(df_2, df_2_deduplicated_filename, output_dir)
-
-    dist_mat = TCRDist().get_raw_distance_matrix(
-        df_1_deduplicated_filename,
-        df_2_deduplicated_filename,
-        verbose=False
-    )/DMAX
-
-    return mass_1, mass_2, dist_mat
 
 def append_id_column(df):
     if 'tcr' not in df.columns:
         df['tcr'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
     return df
-
-def get_effort_scores(file_1, file_2, LAMBDA=0.1, DMAX=200):
-    mass_1, mass_2, dist_mat = get_transport_objects(file_1, file_2)
-    ot_mat = ot.sinkhorn(mass_1[0], mass_2[0], dist_mat, LAMBDA)
-    effort_mat = np.multiply(dist_mat, ot_mat)
-
-    N2 = len(mass_2[0])
-    efforts = DMAX*N2*effort_mat.sum(axis=0)
-
-    assert len(efforts) == N2
-
-    return {tcr: effort for tcr, effort in zip(mass_2[1], efforts)}
-
