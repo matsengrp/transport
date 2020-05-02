@@ -2,5 +2,6 @@ bin
 .gitconfig
 _ignore
 .ipynb_checkpoints
+output
 *.pyc
 tmp_output
