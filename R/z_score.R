@@ -4,17 +4,21 @@ library(ggplot2)
 library(reshape2)
 library(rjson)
 
-source("plot_utils.R")
+source("R/plot_utils.R")
+
+json_dir = "output/json"
+z_score_dir = "output/z_score"
+dir.create(z_score_dir)
 
 dn_subject <- 'DN_18_B.tcrs'
 
-results <- fromJSON(file='replicate_z_scores.json')
+results <- fromJSON(file=file.path(json_dir, 'replicate_z_scores.json'))
 df <- results %>% melt
 names(df) <- c("z_score", "group", "tcr", "subject")
 replicate_df <- df[df[['subject']] == dn_subject, ]
 replicate_df[["tmp"]] <- NULL
 
-rand_results <- fromJSON(file='rand_z_scores.json')
+rand_results <- fromJSON(file=file.path(json_dir, 'rand_z_scores.json'))
 rand_df <- rand_results %>% melt
 names(rand_df) <- c("z_score", "tcr")
 rand_df[["group"]] <- 'randomization'
@@ -48,11 +52,11 @@ p_scatter <- wide_df %>%
     theme_minimal() +
     xlab("Randomization z-score") +
     ylab("Background z-score")
-ggsave("z_score_scatterplot.pdf")
+ggsave(file.path(z_score_dir, "z_score_scatterplot.pdf"))
 
 p_densities <- tall_df[tall_df[['group']] != 'foreground', ] %>%
     ggplot(aes(x=z_score, y=..density.., color=label)) +
     facet_wrap(vars(group), dir="v", scales="free") +
     theme_minimal() +
     geom_density()
-ggsave("z_score_densities.pdf")
+ggsave(file.path(z_score_dir, "z_score_densities.pdf"))

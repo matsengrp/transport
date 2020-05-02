@@ -5,14 +5,16 @@ library(magrittr)
 library(reshape2)
 library(rjson)
 
-source("plot_utils.R")
+source("R/plot_utils.R")
+
+json_dir = "output/json"
+dist_mats_dir = "output/dist_matrices"
 
 projection_method <- "MDS"
 dir.create(projection_method)
 
 if(T) {
-    dist_mats <- read.csv("dist_mat.csv", header=FALSE)
-    results <- list("results"=fromJSON(file="empirical_fg_bg_nbhd_stats.json"))
+    results <- list("results"=fromJSON(file=file.path(json_dir, "empirical_fg_bg_nbhd_stats.json")))
     for(subject in names(results)) {
         results[[subject]][["sds"]] <- NULL
     }
@@ -36,13 +38,15 @@ if(T) {
     dist_mats <- {}
     for(subject in subjects) {
         dist_mats[[subject]] <- read.csv(
-                                         paste0(
-                                                   "~/sync/per_tcr/dist_matrices/",
-                                                   subject,
-                                                   ".tcrs.csv"
-                                                  ),
-                                         header=FALSE
-                                        )
+            file.path(
+                dist_mats_dir,
+                paste0(
+                     subject,
+                     ".tcrs.csv"
+                )
+            ),
+            header=FALSE
+        )
     }
 }
 
@@ -74,18 +78,6 @@ if(TRUE) {
          as.numeric]
 }
 
-fg_plots <- {}
-bg_plots <- {}
-radii <- fg_dat$TCRDistRadius %>% unique
-for(i in 1:length(radii)) {
-    fg_plots[[i]] <- plot_mds_with_scores(fg_dat, radii[i], subjects[2])
-    bg_plots[[i]] <- plot_mds_with_scores(bg_dat, radii[i], subjects[2])
-}
-fg_mds_plots <- plot_grid(plotlist=fg_plots)
-ggsave("fg_mds.pdf", width=12, height=10)
-bg_mds_plots <- plot_grid(plotlist=bg_plots)
-ggsave("bg_mds.pdf", width=12, height=10)
-
 fg_mds_dat_by_subject <- fg_dat %>% 
     build_mds_dataframe(radius=50.5, subjects=subjects, add_extra_metrics=TRUE) %>%
     cbind.data.frame(group="foreground")
@@ -97,7 +89,7 @@ mds_dat_by_subject <- rbind.data.frame(
                                        bg_mds_dat_by_subject
                                       )
 
-motif_metrics_dir <- "motif_metrics"
+motif_metrics_dir <- "output/motif_metrics"
 dir.create(motif_metrics_dir)
 
 mds_dat_by_subject %>%
@@ -132,7 +124,7 @@ prevalence_dat[!duplicated(prevalence_dat), ] %>%
     theme_minimal()
 ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"))
 
-snapshot_dir <- file.path("snapshots", projection_method)
+snapshot_dir <- "output/snapshots"
 dir.create(snapshot_dir)
 for(subject in subjects) {
     fg_snapshot_dat  <- fg_dat %>%
@@ -155,30 +147,21 @@ fg_mds_dat_by_subject <- fg_dat %>% build_mds_dataframe(radius=50.5, subjects=su
 bg_mds_dat_by_subject <- bg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
 by_subject_scores <- as.numeric(c(fg_mds_dat_by_subject$score, bg_mds_dat_by_subject$score))
 
-bg_dat %>%
-    build_mds_dataframe(radius=50.5, subjects=subjects) %>%
-    ggplot(aes(x=x1, y=x2, color=score)) + 
-       geom_point(size=0.5) +
-       scale_colour_viridis_c(breaks=by_subject_scores) +
-       theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
-             panel.background = element_blank()) +
-       facet_wrap(vars(subject), scales="free")
-ggsave("bg_snapshot_by_subject.pdf", width=12, height=10)
-
-plot_dir <- "~/sync/per_tcr/radius_analysis"
+cutoff_dir <- "output/cutoff"
+dir.create(cutoff_dir)
 
 p <- dat %>% ggplot(aes(x=Score, y=TCRDistRadius, color=NeighborCount)) + 
     geom_point(size=0.5) + 
     facet_wrap(vars(Group)) + 
     xlab("Mean per-tcr loneliness") + 
     ylab("TCRdist radius")
-ggsave(file.path(plot_dir, "score_vs_radius.pdf"), width=8, height=6)
+ggsave(file.path(cutoff_dir, "score_vs_radius.pdf"), width=8, height=6)
 
 p2 <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbor count")
-ggsave(file.path(plot_dir, "score_vs_neighbors.pdf"), width=8, height=6)
+ggsave(file.path(cutoff_dir, "score_vs_neighbors.pdf"), width=8, height=6)
 
 p2_tcr <- dat[dat$TCR %in% 
               (dat$TCR %>% unique %>% sample(20)), ] %>% 
@@ -188,34 +171,54 @@ p2_tcr <- dat[dat$TCR %in%
     ylab("Neighbor count") +
     facet_wrap(vars(TCR)) +
     theme(legend.position="none")
-ggsave(file.path(plot_dir, "score_vs_neighbors_by_tcr.pdf"), width=12, height=8)
+ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_tcr.pdf"), width=12, height=8)
 
 p2_facet <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) + 
     facet_wrap(vars(TCRDistRadius)) +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbr count")
-ggsave(file.path(plot_dir, "score_vs_neighbors_by_cutoff.pdf"), width=12, height=8)
+ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_cutoff.pdf"), width=12, height=8)
 
 p2_facet_scaled <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) + 
     facet_wrap(vars(TCRDistRadius), scales="free") +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbr count")
-ggsave(file.path(plot_dir, "score_vs_neighbors_by_cutoff_scaled.pdf"), width=12, height=8)
+ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_cutoff_scaled.pdf"), width=12, height=8)
 
 p3 <- dat %>% ggplot(aes(x=TCRDistRadius, y=NeighborCount)) + 
     geom_point(size=0.1) +
     xlab("TCRdist radius") +
     ylab("Neighbor count")
-ggsave(file.path(plot_dir, "neighbors_vs_radius.pdf"), width=8, height=6)
+ggsave(file.path(cutoff_dir, "neighbors_vs_radius.pdf"), width=8, height=6)
 
 p4 <- dat %>% ggplot(aes(x=Score, colour=Group)) + 
     stat_ecdf() + 
     facet_wrap(vars(TCRDistRadius)) +
     xlab("Mean per-tcr loneliness") +
     ylab("ECDF")
-ggsave(file.path(plot_dir, "ecdfs_by_radius.pdf"))
+ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"))
 
+fg_plots <- {}
+bg_plots <- {}
+radii <- fg_dat$TCRDistRadius %>% unique
+for(i in 1:length(radii)) {
+    fg_plots[[i]] <- plot_mds_with_scores(fg_dat, radii[i], subjects[2])
+    bg_plots[[i]] <- plot_mds_with_scores(bg_dat, radii[i], subjects[2])
+}
+fg_mds_plots <- plot_grid(plotlist=fg_plots)
+ggsave(file.path(cutoff_dir, "fg_mds.pdf"), width=12, height=10)
+bg_mds_plots <- plot_grid(plotlist=bg_plots)
+ggsave(file.path(cutoff_dir, "bg_mds.pdf"), width=12, height=10)
 
+bg_dat %>%
+    build_mds_dataframe(radius=50.5, subjects=subjects) %>%
+    ggplot(aes(x=x1, y=x2, color=score)) + 
+       geom_point(size=0.5) +
+       scale_colour_viridis_c(breaks=by_subject_scores) +
+       theme(axis.title.x=element_blank(), axis.title.y=element_blank(),
+             panel.background = element_blank()) +
+       facet_wrap(vars(subject), scales="free")
+ggsave(file.path(cutoff_dir, "bg_snapshot_by_subject.pdf"), width=12, height=10)
 
