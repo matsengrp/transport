@@ -29,7 +29,8 @@ import sys
 
 sys.path.append(os.getcwd())
 from common.params import DIRECTORIES
-from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_raw_distance_matrix, get_transport_objects, write_deduplicated_file
+from python.tcr_dist import TCRDist
+from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_transport_objects, write_deduplicated_file
 
 ## this is the tcrdist-computing executable
 exe = 'bin/tcrdists'
@@ -85,12 +86,12 @@ for repfile1 in bg_repfiles:
 
     ## compute intra-repertoire distance matrix to find TCR neighborhoods
     dedup_repfile1 = "repfile_dedup.csv"
-    write_deduplicated_file(dn_df, dedup_repfile1, output_dir=DIRECTORIES["tmp_output_dir"])
-    D_11 = get_raw_distance_matrix(dedup_repfile1, dedup_repfile1)
+    write_deduplicated_file(dn_df, dedup_repfile1, output_dir=DIRECTORIES["tmp_output"])
+    D_11 = TCRDist().get_raw_distance_matrix(dedup_repfile1, dedup_repfile1)
     subject = ntpath.basename(repfile1)
     np.savetxt(
         os.path.join(
-            DIRECTORIES["dist_matrices_dir"],
+            DIRECTORIES["dist_matrices"],
             subject + ".csv", 
         ),
         D_11,
@@ -121,7 +122,7 @@ for repfile1 in bg_repfiles:
     z_score_dict[subject] = {tcr: {"foreground": fg_z_score, "background": bg_z_score} for tcr, fg_z_score, bg_z_score in zip(unique_tcrs, fg_z_scores, bg_z_scores)}
     
     result = {"foreground": {"means": T_fg_means.tolist(), "std_devs": T_fg_stddevs.tolist()}, "background": {"means": T_bg_means.tolist(), "std_devs": T_bg_stddevs.tolist()}}
-    with open(os.path.join(DIRECTORIES["json_output_dir"], "empirical_fg_bg_stats.json"), "w") as fp:
+    with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_stats.json"), "w") as fp:
         json.dump(result, fp)
 
     nbhd_means = defaultdict(dict)
@@ -178,8 +179,8 @@ for repfile1 in bg_repfiles:
         nbhd_means[ii][unique_tcrs[ii]] = nbhd_means_by_cutoff
 
     nbhd_result[subject] = {"means": nbhd_means} #, "sds": nbhd_sds }
-    with open(os.path.join(DIRECTORIES["json_output_dir"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
+    with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
         json.dump(nbhd_result, fp)
 
-with open(os.path.join(DIRECTORIES["json_output_dir"], "replicate_z_scores.json"), "w") as fp:
+with open(os.path.join(DIRECTORIES["json_output"], "replicate_z_scores.json"), "w") as fp:
     json.dump(z_score_dict, fp)

@@ -4,6 +4,8 @@ import pandas as pd
 import os
 import ot
 
+from python.tcr_dist import TCRDist
+
 Dmax = 200 # constant across comparisons
 
 def sort_dict(d: dict):
@@ -15,55 +17,6 @@ def jaccard_similarity(list_a, list_b):
     numerator = len(set_a.intersection(set_b))
     denominator = len(list_a) + len(list_b) - numerator
     return numerator/denominator
-
-def get_raw_distance_matrix( 
-    f1,
-    f2,
-    as_pandas_dataframe=False,
-    index_column=None,
-    verbose=True,
-    db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
-    exe='bin/tcrdists',
-    output_dir="tmp_output",
-):
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    cmd = '{} -i {} -j {} -d {} --terse'.format(
-        exe,
-        os.path.join(output_dir, f1),
-        os.path.join(output_dir, f2),
-        db,
-    )
-    if verbose:
-        print(cmd)
-    all_dists = []
-    for line in os.popen(cmd):
-        try:
-            all_dists.append( [float(x) for x in line.split() ] )
-        except ValueError:
-            print(line)
-    N1 = len(all_dists)
-    N2 = len(all_dists[0])
-    for dists in all_dists:
-        assert len(dists) == N2
-
-    D = np.array(all_dists)
-    if verbose:
-        print('loaded dists',D.shape)
-
-    if as_pandas_dataframe:
-        if index_column:
-            D = pd.DataFrame(D)
-
-            df_1 = get_df_from_file(f1)
-            df_2 = get_df_from_file(f2)
-
-            D.index = df_1.iloc[:, index_column]
-            D.columns = df_2.iloc[:, index_column]
-
-    return D
 
 def collapse_allele(gene: str):
     return re.sub("\*[0-9]+", "", gene)
@@ -155,12 +108,11 @@ def get_transport_objects(
     write_deduplicated_file(df_1, df_1_deduplicated_filename, output_dir)
     write_deduplicated_file(df_2, df_2_deduplicated_filename, output_dir)
 
-    dist_mat = get_raw_distance_matrix(
+    dist_mat = TCRDist().get_raw_distance_matrix(
         df_1_deduplicated_filename,
         df_2_deduplicated_filename,
-        db='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse',
-        exe='bin/tcrdists',
-        verbose=False)/DMAX
+        verbose=False
+    )/DMAX
 
     return mass_1, mass_2, dist_mat
 
