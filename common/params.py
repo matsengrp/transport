@@ -1,0 +1,18 @@
+import os
+
+DIST_MATRICES = "dist_matrices"
+JSON_OUTPUT = "json_output"
+OUTPUT = "output"
+TMP_OUTPUT = "tmp_output"
+
+OUTPUT_DIRNAME = "output"
+DIST_MATRICES_DIRNAME = os.path.join(OUTPUT_DIRNAME, "dist_matrices")
+JSON_OUTPUT_DIRNAME = os.path.join(OUTPUT_DIRNAME, "json")
+TMP_OUTPUT_DIRNAME = "tmp_output"
+
+DIRECTORIES = {
+    OUTPUT: OUTPUT_DIRNAME,
+    TMP_OUTPUT: TMP_OUTPUT_DIRNAME,
+    DIST_MATRICES: DIST_MATRICES_DIRNAME,
+    JSON_OUTPUT: JSON_OUTPUT_DIRNAME,
+}
