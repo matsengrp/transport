@@ -30,7 +30,8 @@ import sys
 sys.path.append(os.getcwd())
 from common.params import DIRECTORIES
 from python.tcr_dist import TCRDist
-from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_transport_objects, write_deduplicated_file
+from python.tcr_scorer import TCRScorer
+from python.utils import append_id_column, get_df_from_file, write_deduplicated_file
 
 ## this is the tcrdist-computing executable
 exe = 'bin/tcrdists'
@@ -78,7 +79,8 @@ nbhd_result= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 for repfile1 in bg_repfiles:
     dn_df = get_df_from_file(repfile1)
-    obs_scores = get_effort_scores(cd4_file, repfile1).values()
+    obs_scorer = TCRScorer(file_1=cd4_file, file_2=repfile1)
+    obs_scores = obs_scorer.effort_dict.values()
 
     tcrs = [x[:-1] for x in open(repfile1,'r')]
     unique_tcrs = list(dict.fromkeys(tcrs))
@@ -101,8 +103,8 @@ for repfile1 in bg_repfiles:
 
 
     ## compute per-tcr efforts against each of the other repertoires:
-    fg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in fg_repfiles ]
-    bg_efforts = [ list(get_effort_scores(x, repfile1).values()) for x in bg_repfiles if x != repfile1 ]
+    fg_efforts = [ list(TCRScorer(x, repfile1).effort_dict.values()) for x in fg_repfiles ]
+    bg_efforts = [ list(TCRScorer(x, repfile1).effort_dict.values()) for x in bg_repfiles if x != repfile1 ]
 
 
     T_fg = np.array( fg_efforts ).transpose()
