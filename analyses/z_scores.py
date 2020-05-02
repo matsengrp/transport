@@ -9,9 +9,13 @@ import numpy as np
 sys.path.append('.')
 
 from common.params import DIRECTORIES, DMAX, JSON_OUTPUT
-from python.randomization import do_randomization_test, get_filename_from_subject, split_datasets
+from python.randomization_test import RandomizationTest
 from python.tcr_scorer import TCRScorer
 from python.utils import get_df_from_file
+
+def get_filename_from_subject(subject, file_dir):
+    filename = file_dir + subject + '_B.tcrs'
+    return filename
 
 if __name__ == "__main__":
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
@@ -31,7 +35,9 @@ if __name__ == "__main__":
 
     cd4_df = get_df_from_file(cd4_filename)
     dn_df = get_df_from_file(dn_filename)
-    result = do_randomization_test(cd4_df, dn_df)
+
+    randomization_test = RandomizationTest(cd4_df, dn_df)
+    result = randomization_test.effort_dict
 
     # Downsample all score distributions to smallest observed count
     min_sample_size = np.min([len(x) for x in result.values()])
