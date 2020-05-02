@@ -28,55 +28,23 @@ from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
+from common.params import DIRECTORIES
 from python.utils import append_id_column, get_df_from_file, get_effort_scores, get_mass_objects, get_raw_distance_matrix, get_transport_objects, write_deduplicated_file
 
-def get_file1_tcr_efforts( repfile1, repfile2, verbose=True ):
-    ''' Return the row sums of the effort matrix, ie the per-tcr efforts for each tcr in repfile1
-
-    to get tcrdist-scaled output the row sums are multiplied by the size of the repertoire, un-doing the
-    (uniform) weighting in the transport calc
-    '''
-    global lambd
-
-    wts1, wts2, D = get_transport_objects(
-        get_df_from_file(repfile1),
-        get_df_from_file(repfile2),
-    )
-
-    N1 = D.shape[0]
-    N2 = D.shape[1]
-
-    if verbose:
-        print('run sinkhorn for mat',N1,N2)
-        sys.stdout.flush()
-
-    mat = ot.sinkhorn(wts1[0], wts2[0], D, lambd)
-
-    # total effort matrix
-    hadamard = np.multiply(D, mat)
-
-
-    ## take row sums of the effort matrix, multiply by Dmax to get tcrdists and by N1 to remove wts
-    repfile1_efforts = Dmax * N1 * hadamard.sum(axis=1)
-
-    assert repfile1_efforts.shape[0] == N1
-
-    return repfile1_efforts
-
-
 ## this is the tcrdist-computing executable
-exe = 'bin/tcrdists' #'/home/pbradley/gitrepos/pubtcrs/bin/tcrdists'
-#exe = 'bin/tcrdists'
+exe = 'bin/tcrdists'
 
 ## this is a db-directory needed for the tcrdists calc, for mouse tcrs
-db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse' #'/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
-
-#db = 'data/databases/fake_pubtcrs_db_mouse'
+db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
 
 
 # on rhino1:
 seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
 
+
+for _, d in DIRECTORIES.items():
+    if not os.path.exists(d):
+        os.makedirs(d)
 
 ## fg = foreground, bg = background
 fg_reptag = 'CD4'
@@ -117,12 +85,14 @@ for repfile1 in bg_repfiles:
 
     ## compute intra-repertoire distance matrix to find TCR neighborhoods
     dedup_repfile1 = "repfile_dedup.csv"
-    output_dir = "tmp_output"
-    write_deduplicated_file(dn_df, dedup_repfile1, output_dir=output_dir)
+    write_deduplicated_file(dn_df, dedup_repfile1, output_dir=DIRECTORIES["tmp_output_dir"])
     D_11 = get_raw_distance_matrix(dedup_repfile1, dedup_repfile1)
     subject = ntpath.basename(repfile1)
     np.savetxt(
-        "/home/bolson2/sync/per_tcr/dist_matrices/" + subject + ".csv", 
+        os.path.join(
+            DIRECTORIES["dist_matrices_dir"],
+            subject + ".csv", 
+        ),
         D_11,
         delimiter=",",
         fmt='%i'
@@ -151,7 +121,7 @@ for repfile1 in bg_repfiles:
     z_score_dict[subject] = {tcr: {"foreground": fg_z_score, "background": bg_z_score} for tcr, fg_z_score, bg_z_score in zip(unique_tcrs, fg_z_scores, bg_z_scores)}
     
     result = {"foreground": {"means": T_fg_means.tolist(), "std_devs": T_fg_stddevs.tolist()}, "background": {"means": T_bg_means.tolist(), "std_devs": T_bg_stddevs.tolist()}}
-    with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_stats.json", "w") as fp:
+    with open(os.path.join(DIRECTORIES["json_output_dir"], "empirical_fg_bg_stats.json"), "w") as fp:
         json.dump(result, fp)
 
     nbhd_means = defaultdict(dict)
@@ -208,8 +178,8 @@ for repfile1 in bg_repfiles:
         nbhd_means[ii][unique_tcrs[ii]] = nbhd_means_by_cutoff
 
     nbhd_result[subject] = {"means": nbhd_means} #, "sds": nbhd_sds }
-    with open("/home/bolson2/sync/per_tcr/empirical_fg_bg_nbhd_stats.json", "w") as fp:
+    with open(os.path.join(DIRECTORIES["json_output_dir"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
         json.dump(nbhd_result, fp)
 
-with open("/home/bolson2/sync/per_tcr/replicate_z_scores.json", "w") as fp:
+with open(os.path.join(DIRECTORIES["json_output_dir"], "replicate_z_scores.json"), "w") as fp:
     json.dump(z_score_dict, fp)

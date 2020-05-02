@@ -8,6 +8,7 @@ import numpy as np
 
 sys.path.append('.')
 
+from common.params import DIRECTORIES, JSON_OUTPUT
 from python.randomization import do_randomization_test, get_filename_from_subject, split_datasets
 from python.utils import get_df_from_file, get_effort_scores
 
@@ -15,7 +16,6 @@ LAMBDA = 0.01
 DMAX = 200
 
 if __name__ == "__main__":
-    main_dir = '/home/bolson2/sync/within_gene/'
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
     cd4_subject = 'CD4_16'
@@ -42,10 +42,11 @@ if __name__ == "__main__":
     # Finally, compute the mean score for each TCR:
     mean_result = {tcr: np.mean(scores) for tcr, scores in result.items()}
 
-    results_dir = '/home/bolson2/sync/per_tcr/'
+    results_dir = DIRECTORIES[JSON_OUTPUT]
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-    with open(results_dir + "/per_tcr.json", 'w') as fp:
+
+    with open(os.path.join(results_dir, "per_tcr.json"), 'w') as fp:
         json.dump(mean_result, fp)
 
 
@@ -53,5 +54,5 @@ if __name__ == "__main__":
     dn_tcrs = list(dict.fromkeys(dn_df['tcr']))
     for obs_score, sim_scores, tcr in zip(obs_scores.values(), result.values(), dn_tcrs):
         z_scores[tcr] = (obs_score - np.mean(sim_scores))/np.std(sim_scores)
-    with open(results_dir + "rand_z_scores.json", 'w') as fp:
+    with open(os.path.join(results_dir,  "rand_z_scores.json"), 'w') as fp:
         json.dump(z_scores, fp)
