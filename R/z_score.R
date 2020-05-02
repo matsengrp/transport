@@ -8,16 +8,13 @@ source("plot_utils.R")
 
 dn_subject <- 'DN_18_B.tcrs'
 
-results <- fromJSON(file='z_scores.json')
+results <- fromJSON(file='replicate_z_scores.json')
 df <- results %>% melt
 names(df) <- c("z_score", "group", "tcr", "subject")
 replicate_df <- df[df[['subject']] == dn_subject, ]
-replicate_df[replicate_df[["group"]] == "foreground", ][["group"]] <- "tmp"
-replicate_df[replicate_df[["group"]] == "background", ][["group"]] <- "foreground"
-replicate_df[replicate_df[["group"]] == "tmp", ][["group"]] <- "background"
 replicate_df[["tmp"]] <- NULL
 
-rand_results <- fromJSON(file='neighborhood_sums/z_scores.json')
+rand_results <- fromJSON(file='rand_z_scores.json')
 rand_df <- rand_results %>% melt
 names(rand_df) <- c("z_score", "tcr")
 rand_df[["group"]] <- 'randomization'

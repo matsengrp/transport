@@ -25,22 +25,12 @@ if(T) {
     dat[["Subject"]] <- dat[["Subject"]] %>% 
         sapply(gsub, pattern=".tcrs", replacement="")
     
-    dat[dat$Group == "background", ]$Group <- "tmp"
-    dat[dat$Group == "foreground", ]$Group <- "background"
-    dat[dat$Group == "tmp", ]$Group <- "foreground"
-
     fg_dat <- dat[dat$Group == "foreground", ]
     bg_dat <- dat[dat$Group == "background", ]
     
     subjects <- dat$Subject %>% 
         unique
 }
-
-#rand_dict <- fromJSON(file=file.path("neighborhood_sums", "per_tcr.json"))
-#rand_df <- rand_dict %>% melt
-#names(rand_df) <- c("Score", "CDR3", "Gene", "TCR_ID", "TCR"F)
-#rand_df[["TCR"]] <- Map(function(x, y) { paste(x, y, sep=",") }, rand_df[["Gene"]], rand_df[["CDR3"]])
-#stop()
 
 if(T) {
     dist_mats <- {}
@@ -152,7 +142,6 @@ for(subject in subjects) {
        build_mds_dataframe(radius=50.5, subject=subject) %>%
        cbind.data.frame(Group="background")
     snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
-    snapshot_dat[["label"]] <- factor(snapshot_dat[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida", "X"))
     snapshot_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + geom_point(aes(shape=label)) +
            scale_colour_viridis_c()  +
