@@ -39,7 +39,7 @@ class RandomizationTest():
         return df_1_trial, df_2_trial
     
     def do_randomization_test(self):
-        self.effort_dict = {tcr: [] for tcr in self.df_2_tcrs}
+        self.enrichment_dict = {tcr: [] for tcr in self.df_2_tcrs}
     
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -50,17 +50,17 @@ class RandomizationTest():
     
             trial_scorer = TCRScorer(file_1=self.trial_1_file, file_2=self.trial_2_file)
     
-            for tcr, score in trial_scorer.effort_dict.items():
+            for tcr, score in trial_scorer.enrichment_dict.items():
                 if tcr in self.df_2_tcrs:
-                    self.effort_dict[tcr].append(score)
+                    self.enrichment_dict[tcr].append(score)
 
-        min_sample_size = np.min([len(x) for x in self.effort_dict.values()])
+        min_sample_size = np.min([len(x) for x in self.enrichment_dict.values()])
 
-        for tcr, scores in self.effort_dict.items():
+        for tcr, scores in self.enrichment_dict.items():
             downsampled_scores = sample(scores, min_sample_size)
             tcr_ecdf = ECDF(downsampled_scores)
             tcr_obs_score = self.observed_scores[tcr]
-            self.effort_dict[tcr] = {
+            self.enrichment_dict[tcr] = {
                 "scores": downsampled_scores,
                 "z_score": (tcr_obs_score - np.mean(downsampled_scores))/np.std(downsampled_scores),
                 "p_value": 1 - tcr_ecdf(tcr_obs_score),

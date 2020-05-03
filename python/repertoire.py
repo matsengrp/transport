@@ -3,10 +3,11 @@ import os
 import re
 
 from common.params import DIRECTORIES, TMP_OUTPUT
+from python.tcr_dist import TCRDist
 from python.utils import get_df_from_file, write_deduplicated_file
 
 class Repertoire():
-    def __init__(self, filename, distribution_type):
+    def __init__(self, filename, distribution_type, compute_distance_matrix=False):
         self.filename = filename
         self.distribution_type = distribution_type
         self.data_frame = get_df_from_file(self.filename)
@@ -27,6 +28,9 @@ class Repertoire():
             )
         )
         write_deduplicated_file(df=self.data_frame, filename=self.deduplicated_filename)
+
+        if compute_distance_matrix:
+            self.distance_matrix = TCRDist().get_raw_distance_matrix(self.deduplicated_filename, self.deduplicated_filename)
 
     def get_mass_distribution(self, tcr_counter):
         if self.distribution_type == "inverse_to_v_gene":
