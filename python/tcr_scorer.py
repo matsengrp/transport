@@ -36,8 +36,10 @@ class TCRScorer():
     
         self.effort_dict = {tcr: effort for tcr, effort in zip(self.repertoire_2.unique_tcrs, self.efforts)}
 
-    def compute_enrichments(self):
+    def compute_enrichments(self, neighbor_radius=DEFAULT_NEIGHBOR_RADIUS):
         self.enrichment_dict = defaultdict()
+        self.neighbor_counts = defaultdict()
         for i, tcr in zip(range(self.repertoire_2.unique_N), self.repertoire_2.unique_tcrs):
-            neighborhood_mask = ( self.repertoire_2.distance_matrix[i, :] < self.neighbor_radius )
+            neighborhood_mask = ( self.repertoire_2.distance_matrix[i, :] < neighbor_radius )
             self.enrichment_dict[tcr] = self.efforts[neighborhood_mask].sum()
+            self.neighbor_counts[tcr] = neighborhood_mask.sum()

@@ -28,17 +28,16 @@ from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
-from common.params import DIRECTORIES
+from common.params import DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES
 from python.tcr_dist import TCRDist
 from python.tcr_scorer import TCRScorer
-from python.utils import append_id_column, get_df_from_file, write_deduplicated_file
 
-## this is the tcrdist-computing executable
-exe = 'bin/tcrdists'
+def get_enrichments(scorer, radius):
+    scorer.compute_enrichments(neighbor_radius=radius)
+    return list(scorer.enrichment_dict.values())
 
-## this is a db-directory needed for the tcrdists calc, for mouse tcrs
-db = '/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
-
+def get_neighbor_counts(scorer):
+    return list(scorer.neighbor_counts.values())
 
 # on rhino1:
 seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
@@ -60,7 +59,7 @@ lambd = .01
 Dmax = 200 # constant across comparisons
 
 
-nbrcutoffs = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
+nbrcutoffs = [i + .5 for i in range(0, 100, 10)] # distance at which two single-chain tcrs are considered nbrs
 
 
 
@@ -77,19 +76,38 @@ cd4_file = os.path.join(file_dir, cd4_subject)
 
 nbhd_result= defaultdict(dict)
 z_score_dict = defaultdict(dict)
+p_val_dict = defaultdict(dict)
 for repfile1 in bg_repfiles:
-    dn_df = get_df_from_file(repfile1)
     obs_scorer = TCRScorer(file_1=cd4_file, file_2=repfile1)
-    obs_scores = obs_scorer.effort_dict.values()
+    obs_scores = obs_scorer.enrichment_dict.values()
 
     tcrs = [x[:-1] for x in open(repfile1,'r')]
     unique_tcrs = list(dict.fromkeys(tcrs))
     N1 = len(unique_tcrs)
 
-    ## compute intra-repertoire distance matrix to find TCR neighborhoods
-    dedup_repfile1 = "repfile_dedup.csv"
-    write_deduplicated_file(dn_df, dedup_repfile1, output_dir=DIRECTORIES["tmp_output"])
-    D_11 = TCRDist().get_raw_distance_matrix(dedup_repfile1, dedup_repfile1)
+    ## compute per-tcr efforts against each of the other repertoires:
+    fg_scorers = [TCRScorer(x, repfile1) for x in fg_repfiles]
+    bg_scorers = [TCRScorer(x, repfile1) for x in bg_repfiles if x != repfile1]
+
+    fg_enrichments = [ get_enrichments(fg_scorer, DEFAULT_NEIGHBOR_RADIUS) for fg_scorer in fg_scorers]
+    bg_enrichments = [ get_enrichments(bg_scorer, DEFAULT_NEIGHBOR_RADIUS) for bg_scorer in bg_scorers]
+
+    T_fg_enrichments = np.array( fg_enrichments ).transpose()
+    T_bg_enrichments = np.array( bg_enrichments ).transpose()
+
+    assert T_fg_enrichments.shape == (N1, len(fg_repfiles))
+    assert T_bg_enrichments.shape == (N1, len(bg_repfiles) - 1)
+
+    T_fg_means = np.mean(T_fg_enrichments, axis=1)
+    T_fg_stddevs = np.std(T_fg_enrichments, axis=1)
+    T_bg_means = np.mean(T_bg_enrichments, axis=1)
+    T_bg_stddevs = np.std(T_bg_enrichments, axis=1)
+
+    fg_z_scores = [(obs - mean)/std for obs, mean, std in zip(obs_scores, T_fg_means, T_fg_stddevs)]
+    bg_z_scores = [(obs - mean)/std for obs, mean, std in zip(obs_scores, T_bg_means, T_bg_stddevs)]
+
+    subject = ntpath.basename(repfile1)
+    D_11 = obs_scorer.repertoire_2.distance_matrix
     subject = ntpath.basename(repfile1)
     np.savetxt(
         os.path.join(
@@ -101,88 +119,49 @@ for repfile1 in bg_repfiles:
         fmt='%i'
     )
 
-
-    ## compute per-tcr efforts against each of the other repertoires:
-    fg_efforts = [ list(TCRScorer(x, repfile1).effort_dict.values()) for x in fg_repfiles ]
-    bg_efforts = [ list(TCRScorer(x, repfile1).effort_dict.values()) for x in bg_repfiles if x != repfile1 ]
-
-
-    T_fg = np.array( fg_efforts ).transpose()
-    T_bg = np.array( bg_efforts ).transpose()
-
-    assert T_fg.shape == (N1, len(fg_repfiles))
-    assert T_bg.shape == (N1, len(bg_repfiles) - 1)
-
-    T_fg_means = np.mean(T_fg,axis=1)
-    T_fg_stddevs = np.std(T_fg,axis=1)
-    T_bg_means = np.mean(T_bg,axis=1)
-    T_bg_stddevs = np.std(T_bg,axis=1)
-    
-
-    fg_z_scores = [(obs - mean)/std for obs, mean, std in zip(obs_scores, T_fg_means, T_fg_stddevs)]
-    bg_z_scores = [(obs - mean)/std for obs, mean, std in zip(obs_scores, T_bg_means, T_bg_stddevs)]
     z_score_dict[subject] = {tcr: {"foreground": fg_z_score, "background": bg_z_score} for tcr, fg_z_score, bg_z_score in zip(unique_tcrs, fg_z_scores, bg_z_scores)}
     
     result = {"foreground": {"means": T_fg_means.tolist(), "std_devs": T_fg_stddevs.tolist()}, "background": {"means": T_bg_means.tolist(), "std_devs": T_bg_stddevs.tolist()}}
     with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_stats.json"), "w") as fp:
         json.dump(result, fp)
 
-    nbhd_means = defaultdict(dict)
-    nbhd_sds = defaultdict(list)
     for ii in range(N1):
-        nbhd_means_by_cutoff = defaultdict(dict)
-        for nbrcutoff in nbrcutoffs:
-            ii_nbrhood_mask = ( D_11[ii,:] < nbrcutoff )
 
-            # the efforts relative to the BG repertoires
-            ii_bg_efforts = T_bg[ii,:]
-            # the efforts rel to BG, summed over the nbrs (includes ii, might only be ii)
-            ii_bg_nbrhood_efforts = np.sum( T_bg[ii_nbrhood_mask,:], axis=0 )
+        _, mwu_pval_nbrhood = mannwhitneyu(T_bg_enrichments[ii, :], T_fg_enrichments[ii, :])
+        _, t_pval_nbrhood = ttest_ind(T_bg_enrichments[ii, :], T_fg_enrichments[ii, :])
 
-            # the efforts relative to the FG repertoires
-            ii_fg_efforts = T_fg[ii,:] # the efforts rel to FG, summed over the nbrs (includes ii, might only be ii)
-            ii_fg_nbrhood_efforts = np.sum( T_fg[ii_nbrhood_mask,:], axis=0 )
+        # crude multiple-testing correction:
+        mwu_pval_nbrhood *= N1
+        t_pval_nbrhood *= N1
 
-            T_fg_nbhd = np.array( ii_fg_nbrhood_efforts ).transpose()
-            T_bg_nbhd = np.array( ii_bg_nbrhood_efforts ).transpose()
+        p_val_dict[subject][unique_tcrs[ii]] = mwu_pval_nbrhood
 
-            
-            neighbor_count = sum(ii_nbrhood_mask).item()
-            cutoff_means = defaultdict(dict)
-            cutoff_means[neighbor_count] = {
-                "foreground": np.mean(T_fg_nbhd,axis=0), 
-                "background": np.mean(T_bg_nbhd,axis=0),
+    nbhd_means_by_cutoff = defaultdict(dict)
+    cutoff_means = defaultdict(dict)
+    cutoff_sds = defaultdict(dict)
+    for nbrcutoff in nbrcutoffs:
+        bg_enrichments = np.array([get_enrichments(bg_scorer, radius=nbrcutoff) for bg_scorer in bg_scorers]).transpose()
+        fg_enrichments = np.array([get_enrichments(fg_scorer, radius=nbrcutoff) for fg_scorer in fg_scorers]).transpose()
+        bg_neighbor_counts = np.array([get_neighbor_counts(bg_scorer) for bg_scorer in bg_scorers]).transpose()
+        fg_neighbor_counts = np.array([get_neighbor_counts(fg_scorer) for fg_scorer in fg_scorers]).transpose()
+
+        cutoff_means[nbrcutoff] = defaultdict(dict)
+        cutoff_sds[nbrcutoff] = defaultdict(dict)
+        for ii in range(N1):
+            cutoff_means[nbrcutoff][unique_tcrs[ii]] = {
+                    "foreground": {"score": np.mean(fg_enrichments[ii, :]), "neighbor_count": np.mean(fg_neighbor_counts[ii, :])},
+                    "background": {"score": np.mean(bg_enrichments[ii, :]), "neighbor_count": np.mean(bg_neighbor_counts[ii, :])}
             }
 
-            nbhd_means_by_cutoff[nbrcutoff] = cutoff_means
-
-            cutoff_sds = {
-                "foreground": np.std(T_fg_nbhd,axis=0),
-                "background": np.std(T_bg_nbhd,axis=0)
+            cutoff_sds[nbrcutoff][unique_tcrs[ii]] = {
+                "foreground": np.std(fg_enrichments[ii, :]),
+                "background": np.std(bg_enrichments[ii, :])
             }
 
-            # compare fg, bg distributions of efforts
-            mwu_stat, mwu_pval = mannwhitneyu( ii_bg_efforts, ii_fg_efforts )
-            t_stat, t_pval     = ttest_ind( ii_bg_efforts, ii_fg_efforts )
+    nbhd_result[subject] = cutoff_means
 
-            _, mwu_pval_nbrhood = mannwhitneyu( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
-            _, t_pval_nbrhood     = ttest_ind( ii_bg_nbrhood_efforts, ii_fg_nbrhood_efforts )
-
-            # crude multiple-testing correction:
-            mwu_pval *= N1
-            t_pval *= N1
-            mwu_pval_nbrhood *= N1
-            t_pval_nbrhood *= N1
-
-            print('fg_trans: {:6.2f} {:6.2f} bg: {:6.2f} {:6.2f} t_stat: {:6.2f} t_pval: {:8.1e} {:8.1e} mwu_pval: {:8.1e} {:8.1e} nbrs: {:3d} {}'\
-                  .format( T_fg_means[ii], T_fg_stddevs[ii], T_bg_means[ii], T_bg_stddevs[ii],
-                           t_stat, t_pval, t_pval_nbrhood, mwu_pval, mwu_pval_nbrhood, np.sum(ii_nbrhood_mask), unique_tcrs[ii]))
-        nbhd_means[ii] = defaultdict(dict)
-        nbhd_means[ii][unique_tcrs[ii]] = nbhd_means_by_cutoff
-
-    nbhd_result[subject] = {"means": nbhd_means} #, "sds": nbhd_sds }
-    with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
-        json.dump(nbhd_result, fp)
+with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
+    json.dump(nbhd_result, fp)
 
 with open(os.path.join(DIRECTORIES["json_output"], "replicate_z_scores.json"), "w") as fp:
     json.dump(z_score_dict, fp)

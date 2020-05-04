@@ -9,8 +9,6 @@ import pandas as pd
 from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_scorer import TCRScorer
 
-
-
 class RandomizationTest():
     output_dir = DIRECTORIES[TMP_OUTPUT]
     trial_1_file = os.path.join(output_dir, "trial_1.csv")
