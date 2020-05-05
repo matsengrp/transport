@@ -9,6 +9,7 @@ import sys
 
 sys.path.append(os.getcwd())
 from common.params import DIRECTORIES, DIST_MATRICES
+from python.tcr_dist import TCRDist
 from python.utils import get_df_from_file, get_raw_distance_matrix, write_deduplicated_file
 
 ## this is the tcrdist-computing executable

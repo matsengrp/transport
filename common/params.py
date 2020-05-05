@@ -1,6 +1,9 @@
 import os
 
+DEFAULT_LAMBDA = 0.1
+DEFAULT_NEIGHBOR_RADIUS = 50.5
 DIST_MATRICES = "dist_matrices"
+DMAX = 200
 JSON_OUTPUT = "json_output"
 OUTPUT = "output"
 TMP_OUTPUT = "tmp_output"
