@@ -19,10 +19,16 @@ if(T) {
         results[[subject]][["sds"]] <- NULL
     }
     dat <- results %>% melt
+}
 
-    dat[, c("L3", "L1")] <- NULL
-    names(dat) <- c("Score", "Group", "NeighborCount", "TCRDistRadius", "TCR", "Index", "Subject")
-    dat[["NeighborCount"]] <- dat[["NeighborCount"]] %>% as.numeric
+if(T) {
+
+    dat[, c("L1")] <- NULL
+    names(dat) <- c("Value", "ValueType", "Group", "TCR", "TCRDistRadius", "Subject")
+    neighbor_counts <- dat[dat[["ValueType"]] == "neighbor_count", ][["Value"]]
+    dat <- dat[dat[["ValueType"]] == "score", ]
+    dat[["NeighborCount"]] <- neighbor_counts
+    names(dat)[1] <- "Score"
     dat[["TCRDistRadius"]] <- dat[["TCRDistRadius"]] %>% as.numeric
     dat[["Subject"]] <- dat[["Subject"]] %>% 
         sapply(gsub, pattern=".tcrs", replacement="")
