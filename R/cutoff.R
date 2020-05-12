@@ -6,6 +6,7 @@ library(reshape2)
 library(rjson)
 
 source("R/plot_utils.R")
+source("R/load_score_datasets.R")
 
 json_dir = "output/json"
 dist_mats_dir = "output/dist_matrices"
@@ -13,63 +14,11 @@ dist_mats_dir = "output/dist_matrices"
 projection_method <- "MDS"
 dir.create(projection_method)
 
-if(T) {
-    results <- list("results"=fromJSON(file=file.path(json_dir, "empirical_fg_bg_nbhd_stats.json")))
-    for(subject in names(results)) {
-        results[[subject]][["sds"]] <- NULL
-    }
-    dat <- results %>% melt
-}
-
-if(T) {
-
-    dat[, c("L1")] <- NULL
-    names(dat) <- c("Value", "ValueType", "Group", "TCR", "TCRDistRadius", "Subject")
-    neighbor_counts <- dat[dat[["ValueType"]] == "neighbor_count", ][["Value"]]
-    dat <- dat[dat[["ValueType"]] == "score", ]
-    dat[["NeighborCount"]] <- neighbor_counts
-    names(dat)[1] <- "Score"
-    dat[["TCRDistRadius"]] <- dat[["TCRDistRadius"]] %>% as.numeric
-    dat[["Subject"]] <- dat[["Subject"]] %>% 
-        sapply(gsub, pattern=".tcrs", replacement="")
-    
-    fg_dat <- dat[dat$Group == "foreground", ]
-    bg_dat <- dat[dat$Group == "background", ]
-    
-    subjects <- dat$Subject %>% 
-        unique
-}
-
-if(T) {
-    dist_mats <- {}
-    for(subject in subjects) {
-        dist_mats[[subject]] <- read.csv(
-            file.path(
-                dist_mats_dir,
-                paste0(
-                     subject,
-                     ".tcrs.csv"
-                )
-            ),
-            header=FALSE
-        )
-    }
-}
-
-if(T) {
-    mds_dats <- {}
-    for(subject in subjects) {
-        mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
-                                              projection_method=projection_method, 
-                                              k=2)
-    }
-}
-
 if(FALSE) {
     xs <- mds_fit[, 1]
     ys <- mds_fit[, 2]
     scores <- fg_dat[fg_dat$TCRDistRadius == 50.5, ]$Score
-    tcrs <- (dat$TCR %>% rle %$% values)
+    tcrs <- (dat$tcr %>% rle %$% values)
     
     left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
     right_tcr_cluster <- tcrs[xs > 30 & xs < 60 & ys > 50 & ys < 90 & scores > 1000]
