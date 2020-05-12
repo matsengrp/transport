@@ -1,3 +1,5 @@
+source("R/plot_utils.R")
+
 json_dir = "output/json"
 dist_mats_dir = "output/dist_matrices"
 
