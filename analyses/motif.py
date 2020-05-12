@@ -5,6 +5,9 @@ import operator
 import os
 import sys
 
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -22,6 +25,7 @@ sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for 
 sample_size_threshold = 300
 dfs = []
 
+full_dict = {}
 for subject in subjects:
     if sample_sizes[subject] > sample_size_threshold:
         subject_distance_matrix = np.loadtxt(os.path.join(DIRECTORIES[DIST_MATRICES], subject + '.csv'), dtype='i', delimiter=',')
@@ -36,8 +40,11 @@ for subject in subjects:
         enrichment_threshold = np.quantile(scores, 0.75)
         enrichment_mask = (scores > enrichment_threshold)
         
-        txt_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.txt")
-        hmm_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], "alignment.hmm")
+        alignment_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.fasta")
+        alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
+        hmm_filename = "TRB_mouse.hmm"
+        motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
+        motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
         
         if not os.path.exists(hmm_filename):
             os.mknod(hmm_filename)
@@ -57,19 +64,39 @@ for subject in subjects:
             }
             print("{}, {}".format(neighborhood_mask.sum(), np.mean(neighborhood_enrichments)))
         
-            np.savetxt(
-                txt_filename,
-                neighborhood_cdr3s,
-                fmt="%s"
-            )
-            #os.system('hmmbuild {} {}'.format(hmm_filename, txt_filename))
+            records = [SeqRecord(Seq(cdr3), id=tcr) for tcr, cdr3 in zip(neighborhood_tcrs, neighborhood_cdr3s)]
+            with open(alignment_infile, "w") as output_handle:
+                SeqIO.write(records, output_handle, "fasta")
+            
+            os.system('hmmalign {} {} > {}'.format(hmm_filename, alignment_infile, alignment_outfile))
+            os.system('hmmbuild {} {}'.format(motif_hmm_file, alignment_outfile))
+            os.system('hmmstat {} > {}'.format(motif_hmm_file, motif_hmm_stats_file))
+
+            fields = ['idx', 'name', 'accession', 'nseq', 'eff_nseq', 'M', 'relent', 'info', 'p relE', 'compKL']
+            with open(motif_hmm_stats_file, 'r') as f:
+                for line in f:
+                    print(line)
+                    if line.startswith('1'):
+                        values = line.split()
+                        hmm_stats = {field: value for field, value in zip(fields, values)}
+            motif_dict[radius]['entropy'] = hmm_stats['relent']
         
-        df = pd.DataFrame.from_dict({radius: {'cluster_size': v['cluster_size'], 'mean_enrichment': v['mean_enrichment']} for radius, v in motif_dict.items()})
+        df = pd.DataFrame.from_dict(
+            {
+                radius: {
+                    'cluster_size': v['cluster_size'],
+                    'mean_enrichment': v['mean_enrichment'],
+                    'entropy': v['entropy'],
+                } for radius, v in motif_dict.items()
+            }
+        )
         df = df.transpose()
         df['radius'] = motif_dict.keys()
         df['subject'] = subject
         dfs.append(df)
-    
+
+    full_dict[subject] = motif_dict
+
 full_df = pd.concat(dfs)
 
 if not os.path.exists(CSV_OUTPUT_DIRNAME):
@@ -78,4 +105,4 @@ if not os.path.exists(CSV_OUTPUT_DIRNAME):
 full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
 
 with open(os.path.join(DIRECTORIES[JSON_OUTPUT], "motif.json"), "w") as fp:
-    json.dump(motif_dict, fp)
+    json.dump(full_dict, fp)
