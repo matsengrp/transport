@@ -49,16 +49,20 @@ for subject in subjects:
         if not os.path.exists(hmm_filename):
             os.mknod(hmm_filename)
         
-        radii = [i + .5 for i in range(0, 200, 1)]
+        radii = [i + .5 for i in range(0, 200, 25)]
         motif_dict = defaultdict(dict)
+        previous_radius = -1
         for radius in radii:
             neighborhood_mask = (subject_distance_matrix[index, :] < radius)
+            annulus_mask = (subject_distance_matrix[index, :] < radius) & (subject_distance_matrix[index, :] > previous_radius) & enrichment_mask
             full_mask = neighborhood_mask & enrichment_mask
             neighborhood_enrichments = list(compress(scores, full_mask))
             neighborhood_tcrs = list(compress(unique_tcrs, full_mask))
             neighborhood_cdr3s = [s.split(',')[1] for s in neighborhood_tcrs]
+            annulus_enrichments = list(compress(scores, annulus_mask))
             motif_dict[radius] = {
                 "mean_enrichment": np.mean(neighborhood_enrichments),
+                "annulus_enrichment": np.mean(annulus_enrichments) if annulus_enrichments != [] else 0,
                 "tcrs": neighborhood_tcrs,
                 "cluster_size": int(full_mask.sum())
             }
@@ -80,12 +84,15 @@ for subject in subjects:
                         values = line.split()
                         hmm_stats = {field: value for field, value in zip(fields, values)}
             motif_dict[radius]['entropy'] = hmm_stats['relent']
+
+            previous_radius = radius
         
         df = pd.DataFrame.from_dict(
             {
                 radius: {
                     'cluster_size': v['cluster_size'],
                     'mean_enrichment': v['mean_enrichment'],
+                    'annulus_enrichment': v['annulus_enrichment'],
                     'entropy': v['entropy'],
                 } for radius, v in motif_dict.items()
             }
