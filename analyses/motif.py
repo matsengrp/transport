@@ -37,7 +37,7 @@ for subject in subjects:
         max_score_tcr = max(score_dict.items(), key=operator.itemgetter(1))[0]
         index = unique_tcrs.index(max_score_tcr)
         
-        enrichment_threshold = np.quantile(scores, 0.75)
+        enrichment_threshold = np.quantile(scores, 0.5)
         enrichment_mask = (scores > enrichment_threshold)
         
         alignment_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.fasta")
@@ -49,7 +49,7 @@ for subject in subjects:
         if not os.path.exists(hmm_filename):
             os.mknod(hmm_filename)
         
-        radii = [i + .5 for i in range(0, 200, 25)]
+        radii = [i + .5 for i in range(0, 200, 5)]
         motif_dict = defaultdict(dict)
         previous_radius = -1
         for radius in radii:
@@ -62,7 +62,7 @@ for subject in subjects:
             annulus_enrichments = list(compress(scores, annulus_mask))
             motif_dict[radius] = {
                 "mean_enrichment": np.mean(neighborhood_enrichments),
-                "annulus_enrichment": np.mean(annulus_enrichments) if annulus_enrichments != [] else 0,
+                "annulus_enrichment": np.mean(annulus_enrichments) if annulus_enrichments != [] else None,
                 "tcrs": neighborhood_tcrs,
                 "cluster_size": int(full_mask.sum())
             }
