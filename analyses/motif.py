@@ -57,8 +57,8 @@ if __name__ == "__main__":
     dn_12_hmmer = HMMerManager()
     dn_12_hmmer.run_hmmalign(dn_12_infile, alignment_outfile=dn_12_outfile)
     dn_12_hmmer.run_hmmbuild(dn_12_hmm_file, dn_12_outfile)
-    dn_12_hmmer.run_hmmsearch(dn_12_hmm_file, dn_12_cluster_infile, dn_12_hmmsearch_outfile)
-    
+    hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_hmm_file, dn_12_cluster_infile, dn_12_hmmsearch_outfile)
+
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
             subject_cluster_df, subject_motif_dict = get_cluster_objects_from_subject(subject)
