@@ -40,24 +40,28 @@ if __name__ == "__main__":
     dn_12_cluster_cdr3s = [s.split(',')[1] for s in dn_12_cluster]
     dn_12_all_cdr3s = [s.split(',')[1] for s in list(result["DN_12_B.tcrs"][str(70.5)].keys())]
 
-    dn_12_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.fasta")
-    dn_12_cluster_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.fasta")
-    dn_12_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.sto")
-    dn_12_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.hmm")
+    dn_12_cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.fasta")
+    dn_12_cluster_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.sto")
+    dn_12_cluster_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.hmm")
+
+    dn_12_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.fasta")
+    dn_12_all_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.sto")
+    dn_12_all_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.hmm")
+
     dn_12_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "hmmsearch.out")
 
     all_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in dn_12_all_cdr3s]
-    with open(dn_12_infile, "w") as output_handle:
+    with open(dn_12_all_cdr3s_fasta, "w") as output_handle:
         SeqIO.write(all_records, output_handle, "fasta")
 
     cluster_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in dn_12_cluster_cdr3s]
-    with open(dn_12_cluster_infile, "w") as output_handle:
+    with open(dn_12_cluster_cdr3s_fasta, "w") as output_handle:
         SeqIO.write(cluster_records, output_handle, "fasta")
 
     dn_12_hmmer = HMMerManager()
-    dn_12_hmmer.run_hmmalign(dn_12_infile, alignment_outfile=dn_12_outfile)
-    dn_12_hmmer.run_hmmbuild(dn_12_hmm_file, dn_12_outfile)
-    hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_hmm_file, dn_12_cluster_infile, dn_12_hmmsearch_outfile)
+    dn_12_hmmer.run_hmmalign(alignment_infile=dn_12_cluster_cdr3s_fasta, alignment_outfile=dn_12_cluster_cdr3s_sto)
+    dn_12_hmmer.run_hmmbuild(hmm_file=dn_12_cluster_cdr3s_hmm, alignment_outfile=dn_12_cluster_cdr3s_sto)
+    hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_cluster_cdr3s_hmm, dn_12_all_cdr3s_fasta, dn_12_hmmsearch_outfile)
 
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
