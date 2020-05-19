@@ -33,6 +33,7 @@ if __name__ == "__main__":
     sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for subject in subjects}
     sample_size_threshold = 300
     dfs = []
+    e_value_dfs = []
     full_dict = {}
 
     dn_12_result = get_cluster_objects_from_subject("DN_12_B.tcrs")
@@ -68,13 +69,32 @@ if __name__ == "__main__":
             subject_cluster_df, subject_motif_dict = get_cluster_objects_from_subject(subject)
             dfs.append(subject_cluster_df)
             full_dict[subject] = subject_motif_dict
+
+            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
+            subject_all_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.sto".format(subject))
+            subject_all_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.hmm".format(subject))
+
+            subject_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_hmmsearch.out".format(subject))
+            subject_all_cdr3s = [s.split(',')[1] for s in list(result[subject][str(70.5)].keys())]
+            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
+            subject_all_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in subject_all_cdr3s]
+            with open(subject_all_cdr3s_fasta, "w") as output_handle:
+                SeqIO.write(subject_all_records, output_handle, "fasta")
+
+            subject_hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
+            subject_e_values = [{'cdr3': tcr_info['target_name'], 'e_value': tcr_info['e_value']} for tcr_info in subject_hmmsearch_result]
+            subject_e_value_df = pd.DataFrame(subject_e_values)
+            subject_e_value_df['subject'] = subject
+            e_value_dfs.append(subject_e_value_df)
     
     full_df = pd.concat(dfs)
+    e_value_df = pd.concat(e_value_dfs)
     
     if not os.path.exists(CSV_OUTPUT_DIRNAME):
         os.makedirs(CSV_OUTPUT_DIRNAME)
     
     full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
+    e_value_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "e_value.csv"), index=False)
     
     with open(os.path.join(DIRECTORIES[JSON_OUTPUT], "motif.json"), "w") as fp:
         json.dump(full_dict, fp)
