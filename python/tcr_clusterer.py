@@ -11,6 +11,42 @@ import pandas as pd
 
 from common.params import DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, TMP_OUTPUT
 
+class HMMerManager():
+    hmm_filename = "TRB_mouse.hmm"
+
+    if not os.path.exists(hmm_filename):
+        os.mknod(hmm_filename)
+
+    def __init__(self):
+        self.alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
+        self.motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
+        self.motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
+
+    def run_hmmalign(self, alignment_infile, alignment_outfile=None):
+        if alignment_outfile is None:
+            alignment_outfile = self.alignment_outfile
+
+        os.system('hmmalign {} {} > {}'.format(self.hmm_filename, alignment_infile, alignment_outfile))
+
+    def run_hmmbuild(self, hmm_file=None, alignment_outfile=None):
+        if hmm_file is None:
+            hmm_file = self.motif_hmm_file
+        os.system('hmmbuild {} {}'.format(hmm_file, self.alignment_outfile))
+
+    def run_hmmsearch(self, hmm_filename, sequence_database, outfile):
+        os.system('hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, sequence_database))
+
+    def run_hmmstat(self):
+        os.system('hmmstat {} > {}'.format(self.motif_hmm_file, self.motif_hmm_stats_file))
+
+        fields = ['idx', 'name', 'accession', 'nseq', 'eff_nseq', 'M', 'relent', 'info', 'p relE', 'compKL']
+        with open(self.motif_hmm_stats_file, 'r') as f:
+            for line in f:
+                print(line)
+                if line.startswith('1'):
+                    values = line.split()
+                    self.hmm_stats = {field: value for field, value in zip(fields, values)}
+
 class TCRClusterer():
     def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS):
         unique_tcrs = list(dict.fromkeys(score_dict.keys()))
@@ -22,18 +58,12 @@ class TCRClusterer():
         enrichment_threshold = np.quantile(scores, 0.5)
         enrichment_mask = (scores > enrichment_threshold)
 
-        alignment_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.fasta")
-        alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
-        hmm_filename = "TRB_mouse.hmm"
-        motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
-        motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
-        
-        if not os.path.exists(hmm_filename):
-            os.mknod(hmm_filename)
         
         radii = [i + .5 for i in range(0, 200, 5)]
         self.motif_dict = defaultdict(dict)
         previous_radius = -1
+        hmmer_manager = HMMerManager()
+
         for radius in radii:
             neighborhood_mask = (self_distance_matrix[index, :] < radius)
             annulus_mask = (self_distance_matrix[index, :] < radius) & (self_distance_matrix[index, :] > previous_radius) & enrichment_mask
@@ -51,21 +81,17 @@ class TCRClusterer():
             print("{}, {}".format(neighborhood_mask.sum(), np.mean(neighborhood_enrichments)))
         
             records = [SeqRecord(Seq(cdr3), id=tcr) for tcr, cdr3 in zip(neighborhood_tcrs, neighborhood_cdr3s)]
+
+            alignment_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.fasta")
+
             with open(alignment_infile, "w") as output_handle:
                 SeqIO.write(records, output_handle, "fasta")
             
-            os.system('hmmalign {} {} > {}'.format(hmm_filename, alignment_infile, alignment_outfile))
-            os.system('hmmbuild {} {}'.format(motif_hmm_file, alignment_outfile))
-            os.system('hmmstat {} > {}'.format(motif_hmm_file, motif_hmm_stats_file))
+            hmmer_manager.run_hmmalign(alignment_infile)
+            hmmer_manager.run_hmmbuild()
+            hmmer_manager.run_hmmstat()
 
-            fields = ['idx', 'name', 'accession', 'nseq', 'eff_nseq', 'M', 'relent', 'info', 'p relE', 'compKL']
-            with open(motif_hmm_stats_file, 'r') as f:
-                for line in f:
-                    print(line)
-                    if line.startswith('1'):
-                        values = line.split()
-                        hmm_stats = {field: value for field, value in zip(fields, values)}
-            self.motif_dict[radius]['entropy'] = hmm_stats['relent']
+            self.motif_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
 
             previous_radius = radius
         
