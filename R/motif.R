@@ -10,14 +10,22 @@ get_breakpoint_from_model <- function(seg_fit) {
     return(seg_fit[["psi"]][2])
 }
 
+has_hmmer_motif <- function(cdr3, subject) {
+    hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == subject, ][["tcr"]]
+    return(cdr3 %in% hmmer_cdr3s)
+}
+
 csv_dir <- "output/csv"
 json_dir <- "output/json"
 
 motif_dir <- "output/motif"
+e_value_motif_dir <- "output/motif/e_values"
 dir.create(motif_dir)
+dir.create(e_value_motif_dir)
 
 
 dat <- fread(file.path(csv_dir, "motif.csv"))
+e_value_dat <- fread(file.path(csv_dir, "e_value.csv"))
 
 p1 <- dat %>%
     ggplot(aes(x=radius, y=mean_enrichment, label=cluster_size)) +
@@ -50,7 +58,7 @@ for(tmp_subject in subjects) {
     seg_fit <- segmented(lm_fit, psi=list(radius=20.5))
     breakpoint <- seg_fit %>% get_breakpoint_from_model
     breakpoints <- c(breakpoints, breakpoint)
-    cutoff_radius <- radii[which(radii < breakpoint) %>% max]
+    cutoff_radius <- radii[which(radii <= breakpoint) %>% max]
     cluster_tcrs[[tmp_subject]] <- json_object[[tmp_subject]][[toString(cutoff_radius)]][["tcrs"]]
     xs <- seq(0, max(d_sub$radius), length.out=1000)
     plot(d_sub$annulus_enrichment ~ d_sub$radius, pch=19, xlab="Radius", ylab="Mean enrichment", main=tmp_subject)
@@ -78,20 +86,49 @@ if(!exists("fg_dat")) {
 
 subjects <- subjects %>% sapply(gsub, pattern=".tcrs", replacement="")
 motif_rates <- list()
+reverse_motif_rates <- list()
+reverse_all_motif_rates <- list()
 all_motif_rates <- list()
+joint_rates <- list()
+all_joint_rates <- list()
 for(tmp_subject in subjects) {
     snap_dat <- fg_dat %>%
         build_mds_dataframe(radius=50.5, subjects=tmp_subject)
     snap_dat[["is_in_cluster"]] <- snap_dat[["tcr"]] %>% 
         sapply(toString) %>% 
         sapply(function(x) { x %in% cluster_tcrs[[paste(tmp_subject, "tcrs", sep=".")]] })
+    snap_dat[["has_hmmer_motif"]] <- snap_dat[["tcr"]] %>% 
+        sapply(toString) %>% 
+        sapply(function(x) { x %>% strsplit(',') %>% unlist %>% last }) %>%
+        unname %>%
+        sapply(has_hmmer_motif, subject=tmp_subject)
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=is_in_cluster)) +
         scale_color_viridis_c()
     ggsave(file.path(motif_dir, paste0(tmp_subject, ".pdf")), width=8, height=8)
 
+    snap_dat %>%
+        ggplot(aes(x=x1, y=x2, color=score)) + 
+        geom_point(aes(shape=has_hmmer_motif)) +
+        scale_color_viridis_c()
+    ggsave(file.path(e_value_motif_dir, paste0(tmp_subject, ".pdf")), width=8, height=8)
+
     motif_rates[[tmp_subject]] <- snap_dat[snap_dat[["label"]] %in% c("Revere", "Tremont"), ][["is_in_cluster"]] %>% mean
     all_motif_rates[[tmp_subject]] <- snap_dat[snap_dat[["label"]] %in% c("Ida", "Revere", "Tremont"), ][["is_in_cluster"]] %>% mean
+    reverse_motif_rates[[tmp_subject]] <- snap_dat[snap_dat[["is_in_cluster"]], ][["label"]] %>% 
+        sapply(function(x) { x %in% c("Revere", "Tremont")}) %>% 
+        mean
+    reverse_all_motif_rates[[tmp_subject]] <- snap_dat[snap_dat[["is_in_cluster"]], ][["label"]] %>% 
+        sapply(function(x) { x %in% c("Revere", "Tremont", "Ida")}) %>% 
+        mean
+    joint_rates[[tmp_subject]] <- Map(function(x, y) { x && y },
+                                      snap_dat[["is_in_cluster"]],
+                                      (snap_dat[["label"]] %in% c("Revere", "Tremont"))
+                                     ) %>% unlist %>% mean
+    all_joint_rates[[tmp_subject]] <- Map(function(x, y) { x && y },
+                                      snap_dat[["is_in_cluster"]],
+                                      (snap_dat[["label"]] %in% c("Revere", "Tremont", "Ida"))
+                                     ) %>% unlist %>% mean
 }
 
