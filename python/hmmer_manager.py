@@ -1,9 +1,9 @@
 import os
 
-from common.params import DIRECTORIES, TMP_OUTPUT
+from common.params import DIRECTORIES, TMP_OUTPUT, TRB_MOUSE_HMM
 
 class HMMerManager():
-    hmm_filename = "TRB_mouse.hmm"
+    hmm_filename = TRB_MOUSE_HMM
 
     if not os.path.exists(hmm_filename):
         os.mknod(hmm_filename)
