@@ -11,7 +11,8 @@ import pandas as pd
 sys.path.append(os.getcwd())
 
 from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, DIST_MATRICES, JSON_OUTPUT, TMP_OUTPUT
-from python.tcr_clusterer import HMMerManager, TCRClusterer
+from python.hmmer_manager import HMMerManager
+from python.tcr_clusterer import TCRClusterer
 
 def get_cluster_objects_from_subject(subject):
     subject_distance_matrix = np.loadtxt(os.path.join(DIRECTORIES[DIST_MATRICES], subject + '.csv'), dtype='i', delimiter=',')
@@ -47,7 +48,6 @@ if __name__ == "__main__":
 
     dn_12_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.fasta")
     dn_12_all_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.sto")
-    dn_12_all_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.hmm")
 
     dn_12_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "hmmsearch.out")
 

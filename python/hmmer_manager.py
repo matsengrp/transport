@@ -17,15 +17,25 @@ class HMMerManager():
         if alignment_outfile is None:
             alignment_outfile = self.alignment_outfile
 
-        os.system('hmmalign {} {} > {}'.format(self.hmm_filename, alignment_infile, alignment_outfile))
+        command = 'hmmalign {} {} > {}'.format(self.hmm_filename, alignment_infile, alignment_outfile)
+        print(command)
+        os.system(command)
 
     def run_hmmbuild(self, hmm_file=None, alignment_outfile=None):
         if hmm_file is None:
             hmm_file = self.motif_hmm_file
-        os.system('hmmbuild {} {}'.format(hmm_file, self.alignment_outfile))
+
+        if alignment_outfile is None:
+            alignment_outfile = self.alignment_outfile
+
+        command = 'hmmbuild {} {}'.format(hmm_file, alignment_outfile)
+        print(command)
+        os.system(command)
 
     def run_hmmsearch(self, hmm_filename, sequence_database, outfile):
-        os.system('hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, sequence_database))
+        command = 'hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, sequence_database)
+        print(command)
+        os.system(command)
 
         fields = ['target_name', 'accession', 'query_name', 'accession', 'e_value', 'score', 'bias', 'e_value_2', 'score_2', 'bias_2', 'exp', 'reg', 'clu', 'ov', 'env', 'dom', 'rep', 'inc', 'description_of_target']
 
@@ -39,7 +49,8 @@ class HMMerManager():
         return hmmsearch_result
 
     def run_hmmstat(self):
-        os.system('hmmstat {} > {}'.format(self.motif_hmm_file, self.motif_hmm_stats_file))
+        command = 'hmmstat {} > {}'.format(self.motif_hmm_file, self.motif_hmm_stats_file)
+        os.system(command)
 
         fields = ['idx', 'name', 'accession', 'nseq', 'eff_nseq', 'M', 'relent', 'info', 'p relE', 'compKL']
         with open(self.motif_hmm_stats_file, 'r') as f:
