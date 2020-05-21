@@ -10,8 +10,8 @@ get_breakpoint_from_model <- function(seg_fit) {
     return(seg_fit[["psi"]][2])
 }
 
-has_hmmer_motif <- function(cdr3, subject) {
-    hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == subject, ][["tcr"]]
+has_hmmer_motif <- function(cdr3, tmp_subject, e_value_threshold=1e-8) {
+    hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == paste0(tmp_subject, ".tcrs") & e_value_dat[["e_value"]] < e_value_threshold, ][["cdr3"]]
     return(cdr3 %in% hmmer_cdr3s)
 }
 
@@ -101,7 +101,7 @@ for(tmp_subject in subjects) {
         sapply(toString) %>% 
         sapply(function(x) { x %>% strsplit(',') %>% unlist %>% last }) %>%
         unname %>%
-        sapply(has_hmmer_motif, subject=tmp_subject)
+        sapply(has_hmmer_motif, tmp_subject=tmp_subject)
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=is_in_cluster)) +
