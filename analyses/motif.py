@@ -11,7 +11,17 @@ import pandas as pd
 sys.path.append(os.getcwd())
 
 from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, DIST_MATRICES, JSON_OUTPUT, TMP_OUTPUT
-from python.tcr_clusterer import HMMerManager, TCRClusterer
+from python.hmmer_manager import HMMerManager
+from python.tcr_clusterer import TCRClusterer
+
+with open(os.path.join(DIRECTORIES[JSON_OUTPUT], 'empirical_fg_bg_nbhd_stats.json')) as f:
+    result = json.load(f)
+
+subjects = result.keys()
+sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for subject in subjects}
+sample_size_threshold = 300
+
+seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
 
 def get_cluster_objects_from_subject(subject):
     subject_distance_matrix = np.loadtxt(os.path.join(DIRECTORIES[DIST_MATRICES], subject + '.csv'), dtype='i', delimiter=',')
@@ -25,44 +35,10 @@ def get_cluster_objects_from_subject(subject):
 
     return df, tcr_clusterer.motif_dict
 
-if __name__ == "__main__":
-    with open(os.path.join(DIRECTORIES[JSON_OUTPUT], 'empirical_fg_bg_nbhd_stats.json')) as f:
-        result = json.load(f)
+def run_cluster_analysis():
     
-    subjects = result.keys()
-    sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for subject in subjects}
-    sample_size_threshold = 300
     dfs = []
-    e_value_dfs = []
     full_dict = {}
-
-    dn_12_result = get_cluster_objects_from_subject("DN_12_B.tcrs")
-    dn_12_cluster = dn_12_result[1][70.5]['tcrs'] # Radius obtained from breakpoint script in R
-    dn_12_cluster_cdr3s = [s.split(',')[1] for s in dn_12_cluster]
-    dn_12_all_cdr3s = [s.split(',')[1] for s in list(result["DN_12_B.tcrs"][str(70.5)].keys())]
-
-    dn_12_cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.fasta")
-    dn_12_cluster_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.sto")
-    dn_12_cluster_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_cluster_cdr3s.hmm")
-
-    dn_12_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.fasta")
-    dn_12_all_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.sto")
-    dn_12_all_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "dn_12_all_cdr3s.hmm")
-
-    dn_12_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "hmmsearch.out")
-
-    all_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in dn_12_all_cdr3s]
-    with open(dn_12_all_cdr3s_fasta, "w") as output_handle:
-        SeqIO.write(all_records, output_handle, "fasta")
-
-    cluster_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in dn_12_cluster_cdr3s]
-    with open(dn_12_cluster_cdr3s_fasta, "w") as output_handle:
-        SeqIO.write(cluster_records, output_handle, "fasta")
-
-    dn_12_hmmer = HMMerManager()
-    dn_12_hmmer.run_hmmalign(alignment_infile=dn_12_cluster_cdr3s_fasta, alignment_outfile=dn_12_cluster_cdr3s_sto)
-    dn_12_hmmer.run_hmmbuild(hmm_file=dn_12_cluster_cdr3s_hmm, alignment_outfile=dn_12_cluster_cdr3s_sto)
-    hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_cluster_cdr3s_hmm, dn_12_all_cdr3s_fasta, dn_12_hmmsearch_outfile)
 
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
@@ -70,31 +46,59 @@ if __name__ == "__main__":
             dfs.append(subject_cluster_df)
             full_dict[subject] = subject_motif_dict
 
-            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
-            subject_all_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.sto".format(subject))
-            subject_all_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.hmm".format(subject))
+    full_df = pd.concat(dfs)
+    full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
 
+    with open(os.path.join(DIRECTORIES[JSON_OUTPUT], "motif.json"), "w") as fp:
+        json.dump(full_dict, fp)
+
+def get_profile_from_subject_cluster(subject, cluster_radius):
+    cluster_objects = get_cluster_objects_from_subject(subject + ".tcrs")
+    cluster = cluster_objects[1][cluster_radius]['tcrs'] # Radius obtained from breakpoint script in R
+    cluster_cdr3s = [s.split(',')[1] for s in cluster]
+
+    cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.fasta")
+    cluster_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.sto")
+    cluster_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.hmm")
+
+    cluster_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in cluster_cdr3s]
+    with open(cluster_cdr3s_fasta, "w") as output_handle:
+        SeqIO.write(cluster_records, output_handle, "fasta")
+
+    hmmer_manager = HMMerManager()
+    hmmer_manager.run_hmmalign(alignment_infile=cluster_cdr3s_fasta, alignment_outfile=cluster_cdr3s_sto)
+    hmmer_manager.run_hmmbuild(hmm_file=cluster_cdr3s_hmm, alignment_outfile=cluster_cdr3s_sto)
+    return cluster_cdr3s_hmm
+
+if __name__ == "__main__":
+    run_cluster_analysis()
+
+    e_value_dfs = []
+
+    dn_12_cluster_cdr3s_hmm = get_profile_from_subject_cluster("DN_12_B", 70.5) # Radius obtained from breakpoint script in R
+
+    for subject in subjects:
+        if sample_sizes[subject] > sample_size_threshold:
+
+            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
             subject_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_hmmsearch.out".format(subject))
-            subject_all_cdr3s = [s.split(',')[1] for s in list(result[subject][str(70.5)].keys())]
+            subject_df = pd.read_csv(os.path.join(seq_data_dir, subject), header=None, names=['v_gene', 'cdr3'])
+            subject_all_cdr3s = subject_df['cdr3']
             subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
             subject_all_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in subject_all_cdr3s]
             with open(subject_all_cdr3s_fasta, "w") as output_handle:
                 SeqIO.write(subject_all_records, output_handle, "fasta")
 
-            subject_hmmsearch_result = dn_12_hmmer.run_hmmsearch(dn_12_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
+            subject_hmmsearch_result = HMMerManager().run_hmmsearch(dn_12_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
             subject_e_values = [{'cdr3': tcr_info['target_name'], 'e_value': tcr_info['e_value']} for tcr_info in subject_hmmsearch_result]
             subject_e_value_df = pd.DataFrame(subject_e_values)
             subject_e_value_df['subject'] = subject
             e_value_dfs.append(subject_e_value_df)
     
-    full_df = pd.concat(dfs)
     e_value_df = pd.concat(e_value_dfs)
     
     if not os.path.exists(CSV_OUTPUT_DIRNAME):
         os.makedirs(CSV_OUTPUT_DIRNAME)
     
-    full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
     e_value_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "e_value.csv"), index=False)
     
-    with open(os.path.join(DIRECTORIES[JSON_OUTPUT], "motif.json"), "w") as fp:
-        json.dump(full_dict, fp)

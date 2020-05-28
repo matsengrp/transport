@@ -8,6 +8,7 @@ DMAX = 200
 JSON_OUTPUT = "json_output"
 OUTPUT = "output"
 TMP_OUTPUT = "tmp_output"
+TRB_MOUSE_HMM = "data/hmms/TRB_mouse.hmm"
 
 OUTPUT_DIRNAME = "output"
 
