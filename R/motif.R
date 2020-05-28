@@ -6,13 +6,10 @@ library(rjson)
 library(segmented)
 library(viridis)
 
+source("R/plot_utils.R")
+
 get_breakpoint_from_model <- function(seg_fit) {
     return(seg_fit[["psi"]][2])
-}
-
-has_hmmer_motif <- function(cdr3, tmp_subject, e_value_threshold=1e-8) {
-    hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == paste0(tmp_subject, ".tcrs") & e_value_dat[["e_value"]] < e_value_threshold, ][["cdr3"]]
-    return(cdr3 %in% hmmer_cdr3s)
 }
 
 csv_dir <- "output/csv"
@@ -25,7 +22,7 @@ dir.create(e_value_motif_dir)
 
 
 dat <- fread(file.path(csv_dir, "motif.csv"))
-e_value_dat <- fread(file.path(csv_dir, "e_value.csv"))
+e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
 
 p1 <- dat %>%
     ggplot(aes(x=radius, y=mean_enrichment, label=cluster_size)) +
@@ -101,7 +98,7 @@ for(tmp_subject in subjects) {
         sapply(toString) %>% 
         sapply(function(x) { x %>% strsplit(',') %>% unlist %>% last }) %>%
         unname %>%
-        sapply(has_hmmer_motif, tmp_subject=tmp_subject)
+        sapply(has_hmmer_motif, e_value_dat=e_value_dat, tmp_subject=tmp_subject)
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=is_in_cluster)) +

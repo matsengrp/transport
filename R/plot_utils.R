@@ -31,6 +31,15 @@ has_ida_motif <- function(tcr) {
     return(grepl(ida_gene, gene) && grepl(ida_cdr3, cdr3) && !has_tremont_motif(tcr))
 }
 
+
+has_ida_plus_motif <- function(tcr, e_value_dat, tmp_subject, e_value_threshold=1e-5) {
+    hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == paste0(tmp_subject, ".tcrs") & e_value_dat[["e_value"]] < e_value_threshold, ][["cdr3"]]
+    tcr_info <- tcr %>%
+         extract_tcr_info
+    cdr3 <- tcr_info[2]
+    return(cdr3 %in% hmmer_cdr3s)
+}
+
 has_motif_x <- function(tcr) {
     tcr_info <- tcr %>%
         extract_tcr_info
@@ -94,7 +103,7 @@ extract_tcrs_from_mds_cluster <- function(
    return(cluster_tcrs)
 }
 
-build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE) {
+build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE, e_value_dat) {
     full_dat <- matrix(NA, nrow=0, ncol=4) %>% 
         data.frame %>%
         setNames(c("x1", "x2", "subject", "score"))
@@ -107,8 +116,27 @@ build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FAL
                                   subject=subject,
                                   score=subject_radius_dat[["Score"]],
                                   label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label),
-                                  tcr=subject_radius_dat[["TCR"]]
+                                  tcr=subject_radius_dat[["TCR"]],
+                                  revere=subject_radius_dat[["TCR"]] %>% sapply(has_revere_motif),
+                                  tremont=subject_radius_dat[["TCR"]] %>% sapply(has_tremont_motif),
+                                  ida=subject_radius_dat[["TCR"]] %>% sapply(has_ida_motif)
                                  )
+        if(!missing(e_value_dat)) {
+             subject_dat[["ida_plus"]] <- subject_radius_dat[["TCR"]] %>% 
+                 sapply(
+                     has_ida_plus_motif,
+                     e_value_dat=e_value_dat,
+                     tmp_subject=subject
+                 )
+             subject_dat[["ida_plus_plus"]] <- subject_radius_dat[["TCR"]] %>% 
+                 sapply(
+                     has_ida_plus_motif,
+                     e_value_dat=e_value_dat,
+                     tmp_subject=subject,
+                     e_value_threshold=1e-9
+                 )
+
+        }
         subject_dat[["label"]] <- factor(subject_dat[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida", "X"))
 
         if(add_extra_metrics) {
