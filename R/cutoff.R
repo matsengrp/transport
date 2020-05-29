@@ -73,7 +73,10 @@ build_motif_metric_dat <- function(ref_dat) {
                     full_dat,
                     cbind.data.frame(
                         d_sub_motif,
-                        data.frame(motif=motif)
+                        data.frame(
+                            motif=motif,
+                            motif_prevalence=mean(d_sub[[motif]])
+                        )
                     )
                 )
             }
@@ -82,7 +85,7 @@ build_motif_metric_dat <- function(ref_dat) {
             full_dat,
             cbind.data.frame(
                 d_sub,
-                data.frame(motif="All")
+                data.frame(motif="All", motif_prevalence=1)
             )
         )
     }
@@ -120,9 +123,9 @@ motif_metric_dat %>%
     theme_minimal()
 ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"))
 
-prevalence_dat <- motif_metric_dat[, c("motif", "prevalence")]
+prevalence_dat <- motif_metric_dat[, c("motif", "motif_prevalence")]
 prevalence_dat[!duplicated(prevalence_dat), ] %>%
-    ggplot(aes(x=prevalence, y=..density.., color=motif)) + 
+    ggplot(aes(x=motif_prevalence, y=..density.., color=motif)) + 
     geom_freqpoly() +
     xlab("Prevalence") +
     theme_minimal()

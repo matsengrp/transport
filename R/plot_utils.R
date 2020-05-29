@@ -133,7 +133,7 @@ build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FAL
                      has_ida_plus_motif,
                      e_value_dat=e_value_dat,
                      tmp_subject=subject,
-                     e_value_threshold=1e-9
+                     e_value_threshold=1e-8
                  )
 
         }
