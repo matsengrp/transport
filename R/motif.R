@@ -21,25 +21,25 @@ dir.create(motif_dir)
 dir.create(e_value_motif_dir)
 
 
-dat <- fread(file.path(csv_dir, "motif.csv"))
+motif_dat <- fread(file.path(csv_dir, "motif.csv"))
 e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
 
-p1 <- dat %>%
+p1 <- motif_dat %>%
     ggplot(aes(x=radius, y=mean_enrichment, label=cluster_size)) +
     geom_text(size=2) +
     facet_wrap(vars(subject), scales="free") +
     expand_limits(y=0) +
     scale_color_viridis()
 
-p2 <- dat %>%
+p2 <- motif_dat %>%
     ggplot(aes(x=cluster_size, y=mean_enrichment, color=radius)) +
     geom_point() +
     facet_wrap(vars(subject), scales="free") +
     expand_limits(y=0) +
     scale_color_viridis()
 
-subjects <- dat[["subject"]] %>% unique
-radii <- dat[["radius"]] %>% unique
+subjects <- motif_dat[["subject"]] %>% unique
+radii <- motif_dat[["radius"]] %>% unique
 cluster_tcrs <- {}
 
 if(!exists("json_object")) {
@@ -50,7 +50,7 @@ breakpoints <- {}
 pdf(file.path(motif_dir, "enrichment_by_radius.pdf"), width=12, height=8)
 par(mfrow=c(4, 4))
 for(tmp_subject in subjects) {
-    d_sub <- dat[dat$subject == tmp_subject, ]
+    d_sub <- motif_dat[motif_dat$subject == tmp_subject, ]
     lm_fit <- lm(annulus_enrichment ~ radius, data=d_sub)
     seg_fit <- segmented(lm_fit, psi=list(radius=20.5))
     breakpoint <- seg_fit %>% get_breakpoint_from_model
@@ -58,7 +58,7 @@ for(tmp_subject in subjects) {
     cutoff_radius <- radii[which(radii <= breakpoint) %>% max]
     cluster_tcrs[[tmp_subject]] <- json_object[[tmp_subject]][[toString(cutoff_radius)]][["tcrs"]]
     xs <- seq(0, max(d_sub$radius), length.out=1000)
-    plot(d_sub$annulus_enrichment ~ d_sub$radius, pch=19, xlab="Radius", ylab="Mean enrichment", main=tmp_subject)
+    plot(d_sub$annulus_enrichment ~ d_sub$radius, pch=19, xlab="Radius", ylab="Mean loneliness", main=tmp_subject)
     lines(predict(seg_fit, newdata=data.frame(radius=xs)) ~ xs, col="red")
 }
 dev.off()
@@ -66,7 +66,7 @@ dev.off()
 pdf(file.path(motif_dir, "enrichment_by_cluster_size.pdf"), width=12, height=8)
 par(mfrow=c(4, 4))
 for(tmp_subject in subjects) {
-    d_sub <- dat[dat$subject == tmp_subject, ]
+    d_sub <- motif_dat[motif_dat$subject == tmp_subject, ]
     lm_fit <- lm(annulus_enrichment ~ cluster_size, data=d_sub)
     seg_fit <- segmented(lm_fit, npsi=1)
     xs <- seq(0, max(d_sub$cluster_size), length.out=1000)
@@ -92,23 +92,23 @@ for(tmp_subject in subjects) {
     snap_dat <- fg_dat %>%
         build_mds_dataframe(radius=50.5, subjects=tmp_subject)
     snap_dat[["is_in_cluster"]] <- snap_dat[["tcr"]] %>% 
-        sapply(toString) %>% 
         sapply(function(x) { x %in% cluster_tcrs[[paste(tmp_subject, "tcrs", sep=".")]] })
     snap_dat[["has_hmmer_motif"]] <- snap_dat[["tcr"]] %>% 
         sapply(toString) %>% 
-        sapply(function(x) { x %>% strsplit(',') %>% unlist %>% last }) %>%
         unname %>%
-        sapply(has_hmmer_motif, e_value_dat=e_value_dat, tmp_subject=tmp_subject)
+        sapply(has_ida_plus_motif, e_value_dat=e_value_dat, tmp_subject=tmp_subject)
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=is_in_cluster)) +
-        scale_color_viridis_c()
+        scale_color_viridis_c() +
+        theme_minimal()
     ggsave(file.path(motif_dir, paste0(tmp_subject, ".pdf")), width=8, height=8)
 
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=has_hmmer_motif)) +
-        scale_color_viridis_c()
+        scale_color_viridis_c() + 
+        theme_minimal()
     ggsave(file.path(e_value_motif_dir, paste0(tmp_subject, ".pdf")), width=8, height=8)
 
     motif_rates[[tmp_subject]] <- snap_dat[snap_dat[["label"]] %in% c("Revere", "Tremont"), ][["is_in_cluster"]] %>% mean

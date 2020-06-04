@@ -121,7 +121,7 @@ motif_metric_dat %>%
     geom_freqpoly() +
     xlab("ECDF") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"))
+ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"), height=6, width=10)
 
 prevalence_dat <- motif_metric_dat[, c("motif", "motif_prevalence")]
 prevalence_dat[!duplicated(prevalence_dat), ] %>%
@@ -129,7 +129,7 @@ prevalence_dat[!duplicated(prevalence_dat), ] %>%
     geom_freqpoly() +
     xlab("Prevalence") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"))
+ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"), height=6, width=10)
 
 snapshot_dir <- "output/snapshots"
 dir.create(snapshot_dir)
@@ -205,7 +205,7 @@ p4 <- dat %>% ggplot(aes(x=Score, colour=Group)) +
     facet_wrap(vars(TCRDistRadius)) +
     xlab("Mean per-tcr loneliness") +
     ylab("ECDF")
-ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"))
+ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"), height=20, width=20)
 
 fg_plots <- {}
 bg_plots <- {}
