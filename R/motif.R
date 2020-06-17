@@ -25,7 +25,7 @@ dir.create(e_value_motif_dir)
 
 
 dat <- fread(file.path(csv_dir, "motif.csv"))
-e_value_dat <- fread(file.path(csv_dir, "e_value.csv"))
+e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
 
 p1 <- dat %>%
     ggplot(aes(x=radius, y=mean_enrichment, label=cluster_size)) +
