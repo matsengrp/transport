@@ -1,4 +1,5 @@
 library(cowplot)
+library(data.table)
 library(dplyr)
 library(ggplot2)
 library(magrittr)
@@ -13,6 +14,9 @@ dist_mats_dir = "output/dist_matrices"
 
 projection_method <- "MDS"
 dir.create(projection_method)
+
+csv_dir <- "output/csv"
+e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
 
 if(FALSE) {
     xs <- mds_fit[, 1]
@@ -34,50 +38,98 @@ if(TRUE) {
 }
 
 fg_mds_dat_by_subject <- fg_dat %>% 
-    build_mds_dataframe(radius=50.5, subjects=subjects, add_extra_metrics=TRUE) %>%
+    build_mds_dataframe(
+        radius=50.5,
+        subjects=subjects,
+        add_extra_metrics=TRUE,
+        e_value_dat=e_value_dat
+    ) %>%
     cbind.data.frame(group="foreground")
 bg_mds_dat_by_subject <- bg_dat %>% 
-    build_mds_dataframe(radius=50.5, subjects=subjects, add_extra_metrics=TRUE) %>%
+    build_mds_dataframe(
+        radius=50.5,
+        subjects=subjects,
+        add_extra_metrics=TRUE,
+        e_value_dat=e_value_dat
+    ) %>%
     cbind.data.frame(group="background")
 mds_dat_by_subject <- rbind.data.frame(
                                        fg_mds_dat_by_subject,
                                        bg_mds_dat_by_subject
                                       )
 
+build_motif_metric_dat <- function(ref_dat) {
+    full_dat <- matrix(NA, nrow=0, ncol=3) %>%
+        data.frame %>%
+        setNames(c("score", "label", "prevalence"))
+    motifs <- c("tremont", "revere", "ida", "ida_plus", "ida_plus_plus")
+    subjects <- ref_dat[["subject"]] %>% unique
+    for(tmp_subject in subjects) {
+        d_sub <- ref_dat[ref_dat[["subject"]] == tmp_subject, ]
+        for(motif in motifs) {
+            d_sub_motif <- d_sub[d_sub[[motif]], ]
+            if(nrow(d_sub_motif)) {
+                full_dat <- rbind.data.frame(
+                    full_dat,
+                    cbind.data.frame(
+                        d_sub_motif,
+                        data.frame(
+                            motif=motif,
+                            motif_prevalence=mean(d_sub[[motif]])
+                        )
+                    )
+                )
+            }
+        }
+        full_dat <- rbind.data.frame(
+            full_dat,
+            cbind.data.frame(
+                d_sub,
+                data.frame(motif="All", motif_prevalence=1)
+            )
+        )
+    }
+    return(full_dat)
+}
+
+motif_metric_fg_dat <- build_motif_metric_dat(ref_dat=fg_mds_dat_by_subject)
+motif_metric_bg_dat <- build_motif_metric_dat(ref_dat=bg_mds_dat_by_subject)
+motif_metric_dat <- rbind.data.frame(motif_metric_fg_dat, motif_metric_bg_dat)
+
 motif_metrics_dir <- "output/motif_metrics"
 dir.create(motif_metrics_dir)
 
-mds_dat_by_subject %>%
-    ggplot(aes(x=score, y=..density.., color=label)) + 
+motif_metric_dat %>%
+    ggplot(aes(x=score, y=..density.., color=motif)) + 
     facet_wrap(vars(group), dir="v") +
     geom_freqpoly() +
     xlab("Average loneliness") +
     theme_minimal()
 ggsave(file.path(motif_metrics_dir, "loneliness_by_motif.pdf"))
 
-mds_dat_by_subject %>%
-    ggplot(aes(x=relative_score, y=..density.., color=label)) + 
+motif_metric_dat %>%
+    ggplot(aes(x=relative_score, y=..density.., color=motif)) + 
     facet_wrap(vars(group), dir="v") +
     geom_freqpoly() +
     xlab("Average relative loneliness") +
     theme_minimal()
 ggsave(file.path(motif_metrics_dir, "relative_loneliness_by_motif.pdf"))
 
-mds_dat_by_subject %>%
-    ggplot(aes(x=ecdf, y=..density.., color=label)) + 
+motif_metric_dat %>%
+    ggplot(aes(x=ecdf, y=..density.., color=motif)) + 
     facet_wrap(vars(group)) +
     geom_freqpoly() +
     xlab("ECDF") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"))
+ggsave(file.path(motif_metrics_dir, "ecdf_by_motif.pdf"), height=6, width=10)
 
-prevalence_dat <- mds_dat_by_subject[, c("label", "prevalence")]
+prevalence_dat <- motif_metric_dat[, c("motif", "motif_prevalence")]
 prevalence_dat[!duplicated(prevalence_dat), ] %>%
-    ggplot(aes(x=prevalence, y=..density.., color=label)) + 
+    ggplot(aes(x=motif_prevalence, y=..density.., color=motif)) + 
     geom_freqpoly() +
     xlab("Prevalence") +
     theme_minimal()
-ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"))
+ggsave(file.path(motif_metrics_dir, "motif_prevalence_fg.pdf"), height=6, width=10)
 
 snapshot_dir <- "output/snapshots"
 dir.create(snapshot_dir)
@@ -153,7 +205,7 @@ p4 <- dat %>% ggplot(aes(x=Score, colour=Group)) +
     facet_wrap(vars(TCRDistRadius)) +
     xlab("Mean per-tcr loneliness") +
     ylab("ECDF")
-ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"))
+ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"), height=20, width=20)
 
 fg_plots <- {}
 bg_plots <- {}

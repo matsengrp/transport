@@ -6,7 +6,7 @@ dist_mats_dir = "output/dist_matrices"
 projection_method <- "MDS"
 dir.create(projection_method)
 
-if(T) {
+if(!exists("dat")) {
     results <- list("results"=fromJSON(file=file.path(json_dir, "empirical_fg_bg_nbhd_stats.json")))
     for(subject in names(results)) {
         results[[subject]][["sds"]] <- NULL
@@ -14,7 +14,7 @@ if(T) {
     dat <- results %>% melt
 }
 
-if(T) {
+if(!exists("fg_dat")) {
 
     dat[, c("L1")] <- NULL
     names(dat) <- c("Value", "ValueType", "Group", "TCR", "TCRDistRadius", "Subject")
