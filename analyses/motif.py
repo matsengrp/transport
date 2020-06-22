@@ -33,7 +33,7 @@ def get_cluster_objects_from_subject(subject):
     df = tcr_clusterer.df
     df['subject'] = subject
 
-    return df, tcr_clusterer.motif_dict
+    return df, tcr_clusterer.all_radii_dict
 
 def run_cluster_analysis():
     dfs = []
@@ -41,9 +41,9 @@ def run_cluster_analysis():
 
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
-            subject_cluster_df, subject_motif_dict = get_cluster_objects_from_subject(subject)
+            subject_cluster_df, subject_all_radii_dict = get_cluster_objects_from_subject(subject)
             dfs.append(subject_cluster_df)
-            full_dict[subject] = subject_motif_dict
+            full_dict[subject] = subject_all_radii_dict
 
     full_df = pd.concat(dfs)
     full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)

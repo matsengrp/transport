@@ -1,12 +1,14 @@
 from glob import glob
+import json
 import os
 import subprocess
 import sys
 
+import numpy as np
 import pandas as pd
 
 sys.path.append(os.getcwd())
-from common.params import CSV_OUTPUT_DIRNAME, DIRECTORIES, IEL_DATA_DIR, TMP_OUTPUT
+from common.params import CSV_OUTPUT_DIRNAME, DIRECTORIES, IEL_DATA_DIR, JSON_OUTPUT, TMP_OUTPUT
 from python.tcr_clusterer import TCRClusterer
 from python.tcr_dist import TCRDist
 from python.tcr_scorer import TCRScorer
@@ -34,10 +36,14 @@ write_full_replicate_dataset(cd4_file, "CD4")
 scorer = TCRScorer(file_1=cd4_file, file_2=dn_file)
 dn_self_dist_mat = scorer.repertoire_2.distance_matrix
 tcr_clusterer = TCRClusterer(self_distance_matrix=dn_self_dist_mat, score_dict=scorer.enrichment_dict)
-seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
-tcr_clusterer.df.loc[:, ('radius', 'annulus_enrichment')].to_csv(seg_csv_file, index=False)
+tcr_clusterer.cluster_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "combined_cluster_df.csv"))
 
-
-os.system('Rscript R/segmented_regression.R')
-with open('tmp_output/breakpoint.txt') as f:
-    bp = [float(line.strip()) for line in f]
+np.savetxt(
+    os.path.join(
+        DIRECTORIES["dist_matrices"],
+        "full_dn.csv",
+    ),
+    dn_self_dist_mat,
+    delimiter=",",
+    fmt="%i"
+)

@@ -9,35 +9,37 @@ from Bio.SeqRecord import SeqRecord
 import numpy as np
 import pandas as pd
 
-from common.params import DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, TMP_OUTPUT
+from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 
 class TCRClusterer():
+    seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
+
     def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS):
-        unique_tcrs = list(dict.fromkeys(score_dict.keys()))
-        scores = list(score_dict.values())
+        self.unique_tcrs = list(dict.fromkeys(score_dict.keys()))
+        self.scores = list(score_dict.values())
 
         max_score_tcr = max(score_dict.items(), key=operator.itemgetter(1))[0]
-        index = unique_tcrs.index(max_score_tcr)
+        max_score_tcr_index = self.unique_tcrs.index(max_score_tcr)
 
-        enrichment_threshold = np.quantile(scores, 0.5)
-        enrichment_mask = (scores > enrichment_threshold)
+        enrichment_threshold = np.quantile(self.scores, 0.5)
+        enrichment_mask = (self.scores > enrichment_threshold)
 
         
         radii = [i + .5 for i in range(0, 200, 5)]
-        self.motif_dict = defaultdict(dict)
+        self.all_radii_dict = defaultdict(dict)
         previous_radius = -1
         hmmer_manager = HMMerManager()
 
         for radius in radii:
-            neighborhood_mask = (self_distance_matrix[index, :] < radius)
-            annulus_mask = (self_distance_matrix[index, :] < radius) & (self_distance_matrix[index, :] > previous_radius) & enrichment_mask
+            neighborhood_mask = (self_distance_matrix[max_score_tcr_index, :] < radius)
+            annulus_mask = (self_distance_matrix[max_score_tcr_index, :] < radius) & (self_distance_matrix[max_score_tcr_index, :] > previous_radius) & enrichment_mask
             full_mask = neighborhood_mask & enrichment_mask
-            neighborhood_enrichments = list(compress(scores, full_mask))
-            neighborhood_tcrs = list(compress(unique_tcrs, full_mask))
+            neighborhood_enrichments = list(compress(self.scores, full_mask))
+            neighborhood_tcrs = list(compress(self.unique_tcrs, full_mask))
             neighborhood_cdr3s = [s.split(',')[1] for s in neighborhood_tcrs]
-            annulus_enrichments = list(compress(scores, annulus_mask))
-            self.motif_dict[radius] = {
+            annulus_enrichments = list(compress(self.scores, annulus_mask))
+            self.all_radii_dict[radius] = {
                 "mean_enrichment": np.mean(neighborhood_enrichments),
                 "annulus_enrichment": np.mean(annulus_enrichments) if annulus_enrichments != [] else None,
                 "tcrs": neighborhood_tcrs,
@@ -56,7 +58,7 @@ class TCRClusterer():
             hmmer_manager.run_hmmbuild()
             hmmer_manager.run_hmmstat()
 
-            self.motif_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
+            self.all_radii_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
 
             previous_radius = radius
         
@@ -67,8 +69,23 @@ class TCRClusterer():
                     'mean_enrichment': v['mean_enrichment'],
                     'annulus_enrichment': v['annulus_enrichment'],
                     'entropy': v['entropy'],
-                } for radius, v in self.motif_dict.items()
+                } for radius, v in self.all_radii_dict.items()
             }
         )
         self.df = self.df.transpose()
-        self.df['radius'] = self.motif_dict.keys()
+        self.df['radius'] = self.all_radii_dict.keys()
+
+        self.df.loc[:, ('radius', 'annulus_enrichment')].to_csv(self.seg_csv_file, index=False)
+
+        os.system('Rscript R/segmented_regression.R')
+        with open('tmp_output/breakpoint.txt') as f:
+            bp = [float(line.strip()) for line in f]
+            if len(bp) != 1:
+                raise Exception("Exactly one breakpoint was not found")
+            else:
+                self.breakpoint_radius = bp[0]
+
+
+        self.cluster_dict = self.all_radii_dict[self.breakpoint_radius]
+        self.is_in_cluster = [tcr in self.cluster_dict['tcrs'] for tcr in self.unique_tcrs]
+        self.cluster_df = pd.DataFrame({'tcr': self.unique_tcrs, 'score': self.scores, 'is_in_cluster': self.is_in_cluster})
