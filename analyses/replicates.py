@@ -46,7 +46,7 @@ chain = 'B'
 fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
 bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
 
-neighbor_cutoff_radii = [i + .5 for i in range(0, 100, 10)] # distance at which two single-chain tcrs are considered nbrs
+neighbor_cutoff_radii = [i + .5 for i in range(0, 200, 10)] # distance at which two single-chain tcrs are considered nbrs
 
 cd4_subject = 'CD4_16_B.tcrs'
 dn_subject = 'DN_18_B.tcrs'

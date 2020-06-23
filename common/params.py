@@ -23,3 +23,6 @@ DIRECTORIES = {
     DIST_MATRICES: DIST_MATRICES_DIRNAME,
     JSON_OUTPUT: JSON_OUTPUT_DIRNAME,
 }
+
+IEL_DATA_DIR = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
+

@@ -33,18 +33,17 @@ def get_cluster_objects_from_subject(subject):
     df = tcr_clusterer.df
     df['subject'] = subject
 
-    return df, tcr_clusterer.motif_dict
+    return df, tcr_clusterer.all_radii_dict
 
 def run_cluster_analysis():
-    
     dfs = []
     full_dict = {}
 
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
-            subject_cluster_df, subject_motif_dict = get_cluster_objects_from_subject(subject)
+            subject_cluster_df, subject_all_radii_dict = get_cluster_objects_from_subject(subject)
             dfs.append(subject_cluster_df)
-            full_dict[subject] = subject_motif_dict
+            full_dict[subject] = subject_all_radii_dict
 
     full_df = pd.concat(dfs)
     full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
@@ -70,12 +69,8 @@ def get_profile_from_subject_cluster(subject, cluster_radius):
     hmmer_manager.run_hmmbuild(hmm_file=cluster_cdr3s_hmm, alignment_outfile=cluster_cdr3s_sto)
     return cluster_cdr3s_hmm
 
-if __name__ == "__main__":
-    run_cluster_analysis()
-
-    e_value_dfs = []
-
-    dn_12_cluster_cdr3s_hmm = get_profile_from_subject_cluster("DN_12_B", 70.5) # Radius obtained from breakpoint script in R
+def run_motif_analysis(reference_subject, cluster_radius, outfile_prefix):
+    reference_cluster_cdr3s_hmm = get_profile_from_subject_cluster(reference_subject, cluster_radius) 
 
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
@@ -89,7 +84,7 @@ if __name__ == "__main__":
             with open(subject_all_cdr3s_fasta, "w") as output_handle:
                 SeqIO.write(subject_all_records, output_handle, "fasta")
 
-            subject_hmmsearch_result = HMMerManager().run_hmmsearch(dn_12_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
+            subject_hmmsearch_result = HMMerManager().run_hmmsearch(reference_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
             subject_e_values = [{'cdr3': tcr_info['target_name'], 'e_value': tcr_info['e_value']} for tcr_info in subject_hmmsearch_result]
             subject_e_value_df = pd.DataFrame(subject_e_values)
             subject_e_value_df['subject'] = subject
@@ -97,8 +92,16 @@ if __name__ == "__main__":
     
     e_value_df = pd.concat(e_value_dfs)
     
+    e_value_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "{}_e_value.csv".format(outfile_prefix)), index=False)
+
+if __name__ == "__main__":
     if not os.path.exists(CSV_OUTPUT_DIRNAME):
         os.makedirs(CSV_OUTPUT_DIRNAME)
-    
-    e_value_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "e_value.csv"), index=False)
-    
+
+    run_cluster_analysis()
+
+    e_value_dfs = []
+
+    run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
+
+    run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R

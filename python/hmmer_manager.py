@@ -1,5 +1,9 @@
 import os
 
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+
 from common.params import DIRECTORIES, TMP_OUTPUT, TRB_MOUSE_HMM
 
 class HMMerManager():
@@ -28,7 +32,7 @@ class HMMerManager():
         if alignment_outfile is None:
             alignment_outfile = self.alignment_outfile
 
-        command = 'hmmbuild {} {}'.format(hmm_file, alignment_outfile)
+        command = 'hmmbuild --swentry=0 --swexit=0 {} {}'.format(hmm_file, alignment_outfile)
         print(command)
         os.system(command)
 
@@ -60,3 +64,17 @@ class HMMerManager():
                     values = line.split()
                     self.hmm_stats = {field: value for field, value in zip(fields, values)}
 
+
+    def build_hmm_from_sequences(self, sequence_list, hmm_filename=None):
+        fasta_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.fasta')
+        alignment_outfilename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.sto')
+
+        if hmm_filename is None:
+            hmm_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.hmm')
+                
+        records = [SeqRecord(Seq(sequence), id=sequence) for sequence in sequence_list]
+        with open(fasta_filename, 'w') as output_handle:
+            SeqIO.write(records, output_handle, "fasta")
+
+        self.run_hmmalign(alignment_infile=fasta_filename, alignment_outfile=alignment_outfilename)
+        self.run_hmmbuild(hmm_file=hmm_filename, alignment_outfile=alignment_outfilename)
