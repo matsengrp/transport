@@ -5,7 +5,8 @@ import pandas as pd
 
 class TCRDist():
     exe = 'bin/tcrdists'
-    db ='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
+    #db ='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
+    db = '/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse'
 
     def __init__(self):
         pass

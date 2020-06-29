@@ -15,7 +15,10 @@ from python.hmmer_manager import HMMerManager
 class TCRClusterer():
     seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
 
-    def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS):
+    def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp'):
+        if seg_csv_outfile is None:
+            seg_csv_outfile = self.seg_csv_file
+
         self.unique_tcrs = list(dict.fromkeys(score_dict.keys()))
         self.scores = list(score_dict.values())
 
@@ -77,7 +80,7 @@ class TCRClusterer():
 
         self.df.loc[:, ('radius', 'annulus_enrichment')].to_csv(self.seg_csv_file, index=False)
 
-        os.system('Rscript R/segmented_regression.R')
+        os.system(f'Rscript R/segmented_regression.R {cluster_label}')
         with open('tmp_output/breakpoint.txt') as f:
             bp = [float(line.strip()) for line in f]
             if len(bp) != 1:
