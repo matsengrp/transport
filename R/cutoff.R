@@ -62,7 +62,7 @@ build_motif_metric_dat <- function(ref_dat) {
     full_dat <- matrix(NA, nrow=0, ncol=3) %>%
         data.frame %>%
         setNames(c("score", "label", "prevalence"))
-    motifs <- c("tremont", "revere", "ida", "ida_plus", "ida_plus_plus")
+    motifs <- c("tremont", "revere", "ida_plus", "ida_plus_plus")
     subjects <- ref_dat[["subject"]] %>% unique
     for(tmp_subject in subjects) {
         d_sub <- ref_dat[ref_dat[["subject"]] == tmp_subject, ]
@@ -89,6 +89,9 @@ build_motif_metric_dat <- function(ref_dat) {
             )
         )
     }
+    full_dat[["motif"]] <- full_dat[["motif"]] %>% sapply(toString)
+    full_dat[full_dat[["motif"]] == "ida_plus", ][["motif"]] <- "ida (1e-5)"
+    full_dat[full_dat[["motif"]] == "ida_plus_plus", ][["motif"]] <- "ida (1e-8)"
     return(full_dat)
 }
 
@@ -115,9 +118,8 @@ motif_metric_dat %>%
     theme_minimal()
 ggsave(file.path(motif_metrics_dir, "relative_loneliness_by_motif.pdf"))
 
-motif_metric_dat %>%
+motif_metric_fg_dat %>%
     ggplot(aes(x=ecdf, y=..density.., color=motif)) + 
-    facet_wrap(vars(group)) +
     geom_freqpoly() +
     xlab("ECDF") +
     theme_minimal()

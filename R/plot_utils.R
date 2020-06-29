@@ -1,3 +1,6 @@
+csv_dir <- "output/csv"
+default_e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
+
 extract_tcr_info <- function(tcr) {
     return(tcr %>% strsplit(split=",") %>% first)
 }
@@ -32,7 +35,7 @@ has_ida_motif <- function(tcr) {
 }
 
 
-has_ida_plus_motif <- function(tcr, e_value_dat, tmp_subject, e_value_threshold=1e-5) {
+has_ida_plus_motif <- function(tcr, e_value_dat=default_e_value_dat, tmp_subject, e_value_threshold=1e-5) {
     hmmer_cdr3s <- e_value_dat[e_value_dat[["subject"]] == paste0(tmp_subject, ".tcrs") & e_value_dat[["e_value"]] < e_value_threshold, ][["cdr3"]]
     tcr_info <- tcr %>%
          extract_tcr_info
@@ -51,15 +54,13 @@ has_motif_x <- function(tcr) {
     return(grepl(x_gene, gene) && grepl(x_cdr3, cdr3) && !has_revere_motif(tcr))
 }
 
-get_motif_label <- function(tcr) {
+get_motif_label <- function(tcr, e_value_dat=default_e_value_dat, subject, ...) {
     if(tcr %>% has_revere_motif) {
         label <- "Revere"
     } else if(tcr %>% has_tremont_motif) {
         label <- "Tremont"
-    } else if(tcr %>% has_ida_motif) {
+    } else if(tcr %>% has_ida_plus_motif(e_value_dat=e_value_dat, tmp_subject=subject, ...)) {
         label <- "Ida"
-    } else if(tcr %>% has_motif_x) {
-        label <- "X"
     } else {
         label <- "N/A"
     }
@@ -103,7 +104,7 @@ extract_tcrs_from_mds_cluster <- function(
    return(cluster_tcrs)
 }
 
-build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE, e_value_dat) {
+build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FALSE, e_value_dat=default_e_value_dat) {
     full_dat <- matrix(NA, nrow=0, ncol=4) %>% 
         data.frame %>%
         setNames(c("x1", "x2", "subject", "score"))
@@ -115,7 +116,7 @@ build_mds_dataframe <- function(ref_dat, radius, subjects, add_extra_metrics=FAL
                                   x2=mds_dats[[subject]][, 2],
                                   subject=subject,
                                   score=subject_radius_dat[["Score"]],
-                                  label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label),
+                                  label=subject_radius_dat[["TCR"]] %>% sapply(get_motif_label, e_value_dat=e_value_dat, subject=subject),
                                   tcr=subject_radius_dat[["TCR"]],
                                   revere=subject_radius_dat[["TCR"]] %>% sapply(has_revere_motif),
                                   tremont=subject_radius_dat[["TCR"]] %>% sapply(has_tremont_motif),

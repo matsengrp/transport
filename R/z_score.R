@@ -1,4 +1,5 @@
 library(cowplot)
+library(data.table)
 library(dplyr)
 library(ggplot2)
 library(reshape2)
@@ -41,10 +42,11 @@ wide_df <- bg_df %>%
     merge(rand_df, by='tcr')
 
 wide_df[['label']] <- wide_df[['tcr']] %>%
-    sapply(get_motif_label)
+    sapply(get_motif_label, subject="DN_18_B", e_value_threshold=1e-8)
 tall_df[['label']] <- tall_df[['tcr']] %>%
-    sapply(get_motif_label)
+    sapply(get_motif_label, subject="DN_18_B", e_value_threshold=1e-8)
 
+wide_df[["label"]] <- factor(wide_df[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida"))
 p_scatter <- wide_df %>%
     ggplot() +
     geom_point(aes(x=rand_z_score, y=bg_z_score, color=label, shape=label), alpha=0.6) +

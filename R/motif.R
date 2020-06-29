@@ -96,7 +96,7 @@ for(tmp_subject in subjects) {
     snap_dat[["has_hmmer_motif"]] <- snap_dat[["tcr"]] %>% 
         sapply(toString) %>% 
         unname %>%
-        sapply(has_ida_plus_motif, e_value_dat=e_value_dat, tmp_subject=tmp_subject)
+        sapply(has_ida_plus_motif, e_value_dat=e_value_dat, tmp_subject=tmp_subject, e_value_threshold=1e-7)
     snap_dat %>%
         ggplot(aes(x=x1, y=x2, color=score)) + 
         geom_point(aes(shape=is_in_cluster)) +
