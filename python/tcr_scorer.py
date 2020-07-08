@@ -8,7 +8,7 @@ from python.repertoire import Repertoire
 from python.tcr_dist import TCRDist
 
 class TCRScorer():
-    def __init__(self, file_1, file_2, distribution_type="uniform", lambd=DEFAULT_LAMBDA, neighbor_radius=DEFAULT_NEIGHBOR_RADIUS):
+    def __init__(self, file_1, file_2, species, distribution_type="uniform", lambd=DEFAULT_LAMBDA, neighbor_radius=DEFAULT_NEIGHBOR_RADIUS):
         self.file_1 = file_1
         self.file_2 = file_2
         self.distribution_type = distribution_type
@@ -16,9 +16,9 @@ class TCRScorer():
         self.neighbor_radius = neighbor_radius
 
         self.repertoire_1 = Repertoire(self.file_1, self.distribution_type)
-        self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True)
+        self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True, species="human")
     
-        self.dist_mat = TCRDist().get_raw_distance_matrix(
+        self.dist_mat = TCRDist(species=species).get_raw_distance_matrix(
             self.repertoire_1.deduplicated_filename,
             self.repertoire_2.deduplicated_filename,
             verbose=False
