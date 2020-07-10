@@ -15,7 +15,7 @@ from python.hmmer_manager import HMMerManager
 class TCRClusterer():
     seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
 
-    def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp'):
+    def __init__(self, self_distance_matrix, score_dict, species, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp'):
         if seg_csv_outfile is None:
             seg_csv_outfile = self.seg_csv_file
 
@@ -32,7 +32,7 @@ class TCRClusterer():
         radii = [i + .5 for i in range(0, 200, 5)]
         self.all_radii_dict = defaultdict(dict)
         previous_radius = -1
-        hmmer_manager = HMMerManager()
+        hmmer_manager = HMMerManager(species=species)
 
         for radius in radii:
             neighborhood_mask = (self_distance_matrix[max_score_tcr_index, :] < radius)

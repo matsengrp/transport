@@ -10,13 +10,57 @@ from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
+from common.params import DIRECTORIES, HMM_OUTPUT
+from python.hmmer_manager import HMMerManager
 from python.tcr_clusterer import TCRClusterer
 from python.tcr_scorer import TCRScorer
 
 seq_data_dir = 'data/yfv'
 
+def run_yfv_analysis(file_1, file_2, outdir):
+    scorer = TCRScorer(file_1=file_1, file_2=file_2, species="human")
+    rep_2_self_dist_mat = scorer.repertoire_2.distance_matrix
+    clusterer = TCRClusterer(self_distance_matrix=rep_2_self_dist_mat, score_dict=scorer.enrichment_dict, species="human")
+    
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    
+    hmmer_manager = HMMerManager(species="human")
+    hmmer_manager.build_hmm_from_sequences(
+        [s.split(',')[1] for s in clusterer.cluster_dict['tcrs']],
+        outdir=outdir
+    )
+
 file_1 = os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs")
 file_2 = os.path.join(seq_data_dir, "P1_15_F1_.txt.top1000.tcrs")
-scorer = TCRScorer(file_1=file_1, file_2=file_2, species="human")
-rep_2_self_dist_mat = scorer.repertoire_2.distance_matrix
-rep_2_self_dist_mat = TCRClusterer(self_distance_matrix=rep_2_self_dist_mat, score_dict=scorer.enrichment_dict)
+
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P1_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P2_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P2_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q1_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q2_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q2_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S1_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S2_15_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S2_0_15")
+)

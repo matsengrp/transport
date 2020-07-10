@@ -8,19 +8,34 @@ from Bio.SeqRecord import SeqRecord
 from PIL import Image
 import requests
 
-from common.params import DIRECTORIES, TMP_OUTPUT, TRB_MOUSE_CDR3_HMM, TRB_MOUSE_CDR3_STO
+from common.params import (
+    DIRECTORIES,
+    TMP_OUTPUT,
+    TRB_HUMAN_CDR3_HMM,
+    TRB_HUMAN_CDR3_STO,
+    TRB_MOUSE_CDR3_HMM,
+    TRB_MOUSE_CDR3_STO,
+)
 
 class HMMerManager():
-    hmm_filename = TRB_MOUSE_CDR3_HMM
-    base_alignment_filename = TRB_MOUSE_CDR3_STO
 
-    if not os.path.exists(hmm_filename):
-        os.mknod(hmm_filename)
+    def __init__(self, species):
+        self.species = species
+        if self.species == "mouse":
+            self.hmm_filename = TRB_MOUSE_CDR3_HMM
+            self.base_alignment_filename = TRB_MOUSE_CDR3_STO
+        elif self.species == "human":
+            self.hmm_filename = TRB_HUMAN_CDR3_HMM
+            self.base_alignment_filename = TRB_HUMAN_CDR3_STO
 
-    def __init__(self):
+
+        if not os.path.exists(self.hmm_filename):
+            os.mknod(self.hmm_filename)
+
         self.alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
         self.motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
         self.motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
+        self.species = species
 
     def run_hmmalign(self, alignment_infile, alignment_outfile=None):
         if alignment_outfile is None:
@@ -79,22 +94,23 @@ class HMMerManager():
     def build_hmm_from_sequences(
             self,
             sequence_list,
+            outdir=DIRECTORIES[TMP_OUTPUT],
             hmm_filename=None,
             alignment_outfilename=None,
             fasta_filename=None,
             plot_filename=None
         ):
         if fasta_filename is None:
-            fasta_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.fasta')
+            fasta_filename = os.path.join(outdir, 'seqs.fasta')
 
         if alignment_outfilename is None:
-            alignment_outfilename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.sto')
+            alignment_outfilename = os.path.join(outdir, 'seqs.sto')
 
         if hmm_filename is None:
-            hmm_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'seqs.hmm')
+            hmm_filename = os.path.join(outdir, 'seqs.hmm')
 
         if plot_filename is None:
-            plot_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'logo_plot.png')
+            plot_filename = os.path.join(outdir, 'logo_plot.png')
                 
         records = [SeqRecord(Seq(sequence), id=sequence) for sequence in sequence_list]
         with open(fasta_filename, 'w') as output_handle:
