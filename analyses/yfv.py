@@ -36,8 +36,23 @@ file_2 = os.path.join(seq_data_dir, "P1_15_F1_.txt.top1000.tcrs")
 
 run_yfv_analysis(
     os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P1_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_0")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "P1_15_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P1_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P2_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P2_0_0")
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
@@ -45,9 +60,29 @@ run_yfv_analysis(
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P2_0_15")
 )
 run_yfv_analysis(
+    os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P2_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P2_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q1_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_0")
+)
+run_yfv_analysis(
     os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "Q1_15_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q1_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q2_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q2_0_0")
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
@@ -55,12 +90,37 @@ run_yfv_analysis(
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q2_0_15")
 )
 run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q2_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q2_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S1_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_0")
+)
+run_yfv_analysis(
     os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "S1_15_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_15")
 )
 run_yfv_analysis(
+    os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S1_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S2_0_F2_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S2_0_0")
+)
+run_yfv_analysis(
     os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "S2_15_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S2_0_15")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S2_45_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S2_0_45")
 )
