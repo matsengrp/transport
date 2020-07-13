@@ -16,7 +16,7 @@ class TCRScorer():
         self.neighbor_radius = neighbor_radius
 
         self.repertoire_1 = Repertoire(self.file_1, self.distribution_type)
-        self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True, species="human")
+        self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True, species=species)
     
         self.dist_mat = TCRDist(species=species).get_raw_distance_matrix(
             self.repertoire_1.deduplicated_filename,

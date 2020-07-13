@@ -35,7 +35,7 @@ write_full_replicate_dataset(dn_file, "DN")
 write_full_replicate_dataset(cd4_file, "CD4")
 
 def run_clustering_step(file_1, file_2, cluster, score_dict=None):
-    scorer = TCRScorer(file_1=file_1, file_2=file_2)
+    scorer = TCRScorer(file_1=file_1, file_2=file_2, species="mouse")
     if score_dict is None:
         score_dict=scorer.enrichment_dict
     rep_2_self_dist_mat = scorer.repertoire_2.distance_matrix
@@ -44,7 +44,7 @@ def run_clustering_step(file_1, file_2, cluster, score_dict=None):
 
 all_clusters = []
 
-initial_scorer = TCRScorer(file_1=cd4_file, file_2=dn_file)
+initial_scorer = TCRScorer(file_1=cd4_file, file_2=dn_file, species="mouse")
 initial_rep_2_self_dist_mat = initial_scorer.repertoire_2.distance_matrix
 initial_score_dict = initial_scorer.enrichment_dict
 initial_clusterer = TCRClusterer(self_distance_matrix=initial_rep_2_self_dist_mat, score_dict=initial_score_dict, cluster_label="cluster_1")
