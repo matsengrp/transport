@@ -15,7 +15,7 @@ from python.hmmer_manager import HMMerManager
 class TCRClusterer():
     seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
 
-    def __init__(self, self_distance_matrix, score_dict, species, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp'):
+    def __init__(self, self_distance_matrix, score_dict, species, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp', outdir=DIRECTORIES[TMP_OUTPUT]):
         if seg_csv_outfile is None:
             seg_csv_outfile = self.seg_csv_file
 
@@ -57,11 +57,11 @@ class TCRClusterer():
             with open(alignment_infile, "w") as output_handle:
                 SeqIO.write(records, output_handle, "fasta")
             
-            hmmer_manager.run_hmmalign(alignment_infile)
-            hmmer_manager.run_hmmbuild()
-            hmmer_manager.run_hmmstat()
+            #hmmer_manager.run_hmmalign(alignment_infile)
+            #hmmer_manager.run_hmmbuild()
+            #hmmer_manager.run_hmmstat()
 
-            self.all_radii_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
+            #self.all_radii_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
 
             previous_radius = radius
         
@@ -71,7 +71,6 @@ class TCRClusterer():
                     'cluster_size': v['cluster_size'],
                     'mean_enrichment': v['mean_enrichment'],
                     'annulus_enrichment': v['annulus_enrichment'],
-                    'entropy': v['entropy'],
                 } for radius, v in self.all_radii_dict.items()
             }
         )
@@ -80,8 +79,8 @@ class TCRClusterer():
 
         self.df.loc[:, ('radius', 'annulus_enrichment')].to_csv(self.seg_csv_file, index=False)
 
-        os.system(f'Rscript R/segmented_regression.R {cluster_label}')
-        with open('tmp_output/breakpoint.txt') as f:
+        os.system(f'Rscript R/segmented_regression.R {outdir}')
+        with open(os.path.join(outdir, 'breakpoint.txt')) as f:
             bp = [float(line.strip()) for line in f]
             if len(bp) != 1:
                 raise Exception("Exactly one breakpoint was not found")

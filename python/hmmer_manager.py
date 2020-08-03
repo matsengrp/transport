@@ -21,12 +21,13 @@ class HMMerManager():
 
     def __init__(self, species):
         self.species = species
-        if self.species == "mouse":
-            self.hmm_filename = TRB_MOUSE_CDR3_HMM
-            self.base_alignment_filename = TRB_MOUSE_CDR3_STO
-        elif self.species == "human":
-            self.hmm_filename = TRB_HUMAN_CDR3_HMM
-            self.base_alignment_filename = TRB_HUMAN_CDR3_STO
+        self.hmm_filename = 'tmp.hmm'
+        #if self.species == "mouse":
+        #    self.hmm_filename = TRB_MOUSE_CDR3_HMM
+        #    self.base_alignment_filename = TRB_MOUSE_CDR3_STO
+        #elif self.species == "human":
+        #    self.hmm_filename = TRB_HUMAN_CDR3_HMM
+        #    self.base_alignment_filename = TRB_HUMAN_CDR3_STO
 
 
         if not os.path.exists(self.hmm_filename):
@@ -37,12 +38,14 @@ class HMMerManager():
         self.motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
         self.species = species
 
-    def run_hmmalign(self, alignment_infile, alignment_outfile=None):
+    def run_hmmalign(self, alignment_infile, alignment_outfile=None, hmm_filename=None):
+        if hmm_filename is None:
+            hmm_filename = self.hmm_filename
         if alignment_outfile is None:
             alignment_outfile = self.alignment_outfile
 
         command = 'hmmalign {} {} > {}'.format(
-            self.hmm_filename,
+            hmm_filename,
             alignment_infile,
             alignment_outfile
         )
@@ -52,8 +55,6 @@ class HMMerManager():
     def run_hmmbuild(self, hmm_file=None, alignment_outfile=None):
         if hmm_file is None:
             hmm_file = self.motif_hmm_file
-        else:
-            self.motif_hmm_file = hmm_file
 
         if alignment_outfile is None:
             alignment_outfile = self.alignment_outfile
@@ -95,39 +96,31 @@ class HMMerManager():
             self,
             sequence_list,
             outdir=DIRECTORIES[TMP_OUTPUT],
-            hmm_filename=None,
-            alignment_outfilename=None,
-            fasta_filename=None,
-            plot_filename=None
         ):
-        if fasta_filename is None:
-            fasta_filename = os.path.join(outdir, 'seqs.fasta')
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
 
-        if alignment_outfilename is None:
-            alignment_outfilename = os.path.join(outdir, 'seqs.sto')
+        fasta_filename = os.path.join(outdir, 'seqs.fasta')
+        aligned_fasta_filename = os.path.join(outdir, 'aligned_seqs.fasta')
+        aligned_sto_filename = os.path.join(outdir, 'aligned_seqs.sto')
+        hmm_filename = os.path.join(outdir, 'seqs.hmm')
+        plot_filename = os.path.join(outdir, 'logo_plot.png')
 
-        if hmm_filename is None:
-            hmm_filename = os.path.join(outdir, 'seqs.hmm')
-
-        if plot_filename is None:
-            plot_filename = os.path.join(outdir, 'logo_plot.png')
-                
         records = [SeqRecord(Seq(sequence), id=sequence) for sequence in sequence_list]
         with open(fasta_filename, 'w') as output_handle:
             SeqIO.write(records, output_handle, "fasta")
 
-        self.run_hmmalign(alignment_infile=fasta_filename, alignment_outfile=alignment_outfilename)
-        self.run_hmmbuild(hmm_file=hmm_filename, alignment_outfile=alignment_outfilename)
-        self.get_logo_plot(plot_outfilename=plot_filename)
+        os.system("mafft {} > {}".format(fasta_filename, aligned_fasta_filename))
+        # We need to deduplicate sequences here, since we can have TCRS with different V-genes but the same CDR3
+        os.system("seqmagick convert --deduplicate-sequences {} {}".format(aligned_fasta_filename, aligned_sto_filename))
+        self.run_hmmbuild(hmm_file=hmm_filename, alignment_outfile=aligned_sto_filename)
+        self.get_logo_plot(plot_outfilename=plot_filename, hmm_file=hmm_filename)
 
-    def get_logo_plot(self, plot_outfilename=None):
-        if plot_outfilename is None:
-            plot_outfilename = os.path.join(DIRECTORIES[TMP_OUTPUT], 'logo_plot.png')
-
+    def get_logo_plot(self, plot_outfilename, hmm_file):
         r = requests.post(
             'http://skylign.org',
             headers={"Accept": "application/json"},
-            files={"file": open(self.motif_hmm_file, "rb")},
+            files={"file": open(hmm_file, "rb")},
             data={"processing": "hmm"}
         )
         r2 = requests.get(

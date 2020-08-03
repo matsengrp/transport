@@ -27,11 +27,12 @@ seg_fit <- segmented(lm_fit, npsi=1)
 breakpoint <- seg_fit %>% get_breakpoint_from_model
 cutoff_radius <- radii[which(radii <= breakpoint) %>% max]
 
-write(cutoff_radius, file="tmp_output/breakpoint.txt")
+args <- commandArgs(trailingOnly=TRUE)
+outdir <- args[1]
+write(cutoff_radius, file=file.path(outdir, "breakpoint.txt"))
 
-args = commandArgs(trailingOnly=TRUE)
 xs <- seq(0, max(seg_dat$radius), length.out=1000)
-pdf(paste0('output/hmm/', args[1], '.pdf'))
+pdf(file.path(outdir, 'seg_reg.pdf'))
 plot(seg_dat$annulus_enrichment ~ seg_dat$radius)
 lines(predict(seg_fit, newdata=data.frame(radius=xs)) ~ xs, col="red")
 dev.off()

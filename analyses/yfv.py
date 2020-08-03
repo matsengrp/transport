@@ -6,15 +6,12 @@ import ntpath
 
 from glob import glob
 import os
-from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
 from common.params import DIRECTORIES, HMM_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.tcr_multi_clusterer import TCRMultiClusterer
-from python.tcr_clusterer import TCRClusterer
-from python.tcr_scorer import TCRScorer
 
 seq_data_dir = 'data/yfv'
 
