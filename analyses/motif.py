@@ -28,7 +28,7 @@ def get_cluster_objects_from_subject(subject):
     info_dict = result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]
     score_dict = {tcr: tcr_info['foreground']['score'] for tcr, tcr_info in info_dict.items()}
 
-    tcr_clusterer = TCRClusterer(subject_distance_matrix, score_dict)
+    tcr_clusterer = TCRClusterer(subject_distance_matrix, score_dict, species="mouse")
     
     df = tcr_clusterer.df
     df['subject'] = subject
