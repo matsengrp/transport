@@ -19,16 +19,8 @@ from common.params import (
 
 class HMMerManager():
 
-    def __init__(self, species):
-        self.species = species
+    def __init__(self):
         self.hmm_filename = 'tmp.hmm'
-        #if self.species == "mouse":
-        #    self.hmm_filename = TRB_MOUSE_CDR3_HMM
-        #    self.base_alignment_filename = TRB_MOUSE_CDR3_STO
-        #elif self.species == "human":
-        #    self.hmm_filename = TRB_HUMAN_CDR3_HMM
-        #    self.base_alignment_filename = TRB_HUMAN_CDR3_STO
-
 
         if not os.path.exists(self.hmm_filename):
             os.mknod(self.hmm_filename)
@@ -36,7 +28,6 @@ class HMMerManager():
         self.alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
         self.motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
         self.motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
-        self.species = species
 
     def run_hmmalign(self, alignment_infile, alignment_outfile=None, hmm_filename=None):
         if hmm_filename is None:
@@ -110,7 +101,7 @@ class HMMerManager():
         with open(fasta_filename, 'w') as output_handle:
             SeqIO.write(records, output_handle, "fasta")
 
-        os.system("mafft {} > {}".format(fasta_filename, aligned_fasta_filename))
+        os.system("mafft --globalpair {} > {}".format(fasta_filename, aligned_fasta_filename))
         # We need to deduplicate sequences here, since we can have TCRS with different V-genes but the same CDR3
         os.system("seqmagick convert --deduplicate-sequences {} {}".format(aligned_fasta_filename, aligned_sto_filename))
         self.run_hmmbuild(hmm_file=hmm_filename, alignment_outfile=aligned_sto_filename)
