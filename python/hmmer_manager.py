@@ -57,7 +57,9 @@ class HMMerManager():
     def run_hmmsearch(self, hmm_filename, sequence_database, outfile):
         command = 'hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, sequence_database)
         print(command)
-        os.system(command)
+        command_result = os.system(command)
+        if command_result:
+            raise Exception("hmmsearch command did not execute successfully")
 
         fields = ['target_name', 'accession', 'query_name', 'accession', 'e_value', 'score', 'bias', 'e_value_2', 'score_2', 'bias_2', 'exp', 'reg', 'clu', 'ov', 'env', 'dom', 'rep', 'inc', 'description_of_target']
 
