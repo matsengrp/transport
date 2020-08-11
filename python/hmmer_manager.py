@@ -20,14 +20,7 @@ from common.params import (
 class HMMerManager():
 
     def __init__(self):
-        self.hmm_filename = 'tmp.hmm'
-
-        if not os.path.exists(self.hmm_filename):
-            os.mknod(self.hmm_filename)
-
-        self.alignment_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.sto")
-        self.motif_hmm_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif.hmm")
-        self.motif_hmm_stats_file = os.path.join(DIRECTORIES[TMP_OUTPUT], "motif_stats.txt")
+        pass
 
     def run_hmmalign(self, alignment_infile, alignment_outfile=None, hmm_filename=None):
         if hmm_filename is None:
