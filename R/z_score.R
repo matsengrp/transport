@@ -13,19 +13,27 @@ dir.create(z_score_dir)
 
 dn_subject <- 'DN_18_B.tcrs'
 
+cluster_df <- fread("output/json/cluster_df.csv")
+cluster_df[cluster_df[["cluster"]] > 5, ][["cluster"]] <- 0
+cluster_df[cluster_df[["cluster"]] == 0, ][["cluster"]] <- "None"
+
+
 results <- fromJSON(file=file.path(json_dir, 'replicate_z_scores.json'))
 df <- results %>% melt
 names(df) <- c("z_score", "group", "tcr", "subject")
 replicate_df <- df[df[['subject']] == dn_subject, ]
 replicate_df[["tmp"]] <- NULL
+replicate_df[["cluster"]] <- rep(cluster_df[["cluster"]], 1, each=2) %>% sapply(toString)
 
 rand_results <- fromJSON(file=file.path(json_dir, 'rand_z_scores.json'))
 rand_df <- rand_results %>% melt
 names(rand_df) <- c("z_score", "tcr")
 rand_df[["group"]] <- 'randomization'
+rand_df[["cluster"]] <- cluster_df[["cluster"]] %>% sapply(toString)
+
 
 tall_df <- rbind.data.frame(
-    replicate_df[, c('z_score', 'tcr', 'group')], 
+    replicate_df[, c('z_score', 'tcr', 'group', 'cluster')], 
     rand_df
 )
 
@@ -46,18 +54,24 @@ wide_df[['label']] <- wide_df[['tcr']] %>%
 tall_df[['label']] <- tall_df[['tcr']] %>%
     sapply(get_motif_label, subject="DN_18_B", e_value_threshold=1e-8)
 
+
 wide_df[["label"]] <- factor(wide_df[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida"))
+wide_df[["label"]] <- cluster_df[["cluster"]] %>% sapply(function(x) { paste("cluster", x) })
+tall_df[["label"]] <- wide_df[["label"]] # cluster_df[["cluster"]] %>% sapply(function(x) { paste("cluster", x) })
 p_scatter <- wide_df %>%
     ggplot() +
-    geom_point(aes(x=rand_z_score, y=bg_z_score, color=label, shape=label), alpha=0.6) +
+    geom_point(aes(x=rand_z_score, y=bg_z_score, color=cluster, shape=cluster), alpha=0.6) +
+    scale_shape_manual(values = 0:10) +
     geom_smooth(method="lm", aes(y=bg_z_score, x=rand_z_score)) +
     theme_minimal() +
     xlab("Randomization z-score") +
     ylab("Background z-score")
 ggsave(file.path(z_score_dir, "z_score_scatterplot.pdf"))
 
+
+
 p_densities <- tall_df[tall_df[['group']] != 'foreground', ] %>%
-    ggplot(aes(x=z_score, y=..density.., color=label)) +
+    ggplot(aes(x=z_score, y=..density.., color=cluster)) +
     facet_wrap(vars(group), dir="v", scales="free") +
     theme_minimal() +
     geom_density()
