@@ -28,13 +28,13 @@ if __name__ == "__main__":
     dn_filename = get_filename_from_subject(dn_subject, file_dir)
     cd8_filename = get_filename_from_subject(cd8_subject, file_dir)
 
-    obs_scorer = TCRScorer(file_1=cd4_filename, file_2=dn_filename)
+    obs_scorer = TCRScorer(file_1=cd4_filename, file_2=dn_filename, species="mouse")
     obs_scores = obs_scorer.enrichment_dict
 
     cd4_df = get_df_from_file(cd4_filename)
     dn_df = get_df_from_file(dn_filename)
 
-    randomization_test = RandomizationTest(cd4_df, dn_df, obs_scores)
+    randomization_test = RandomizationTest(cd4_df, dn_df, obs_scores, species="mouse")
     result = randomization_test.enrichment_dict
 
     results_dir = DIRECTORIES[JSON_OUTPUT]

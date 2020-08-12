@@ -14,10 +14,11 @@ class RandomizationTest():
     trial_1_file = os.path.join(output_dir, "trial_1.csv")
     trial_2_file = os.path.join(output_dir, "trial_2.csv")
     
-    def __init__(self, df_1, df_2, observed_scores, trial_count=100):
+    def __init__(self, df_1, df_2, observed_scores, species, trial_count=100):
         self.df_1 = df_1
         self.df_2 = df_2
         self.observed_scores = observed_scores
+        self.species = species
         self.N1 = df_1.shape[0]
         self.N2 = df_2.shape[0]
         self.df_2_tcrs = list(dict.fromkeys(self.df_2['tcr']))
@@ -46,7 +47,11 @@ class RandomizationTest():
     
             df_1_trial, df_2_trial = self.split_datasets()
     
-            trial_scorer = TCRScorer(file_1=self.trial_1_file, file_2=self.trial_2_file)
+            trial_scorer = TCRScorer(
+                file_1=self.trial_1_file,
+                file_2=self.trial_2_file,
+                species=self.species
+            )
     
             for tcr, score in trial_scorer.enrichment_dict.items():
                 if tcr in self.df_2_tcrs:
