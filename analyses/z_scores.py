@@ -5,11 +5,13 @@ from random import sample
 import sys
 
 import numpy as np
+import pandas as pd
 
 sys.path.append('.')
 
 from common.params import DIRECTORIES, DMAX, JSON_OUTPUT
 from python.randomization_test import RandomizationTest
+from python.tcr_multi_clusterer import TCRMultiClusterer
 from python.tcr_scorer import TCRScorer
 from python.utils import get_df_from_file
 
@@ -48,3 +50,11 @@ if __name__ == "__main__":
     p_values = {tcr: tcr_info['p_value'] for tcr, tcr_info in result.items()}
     with open(os.path.join(results_dir,  "rand_p_values.json"), 'w') as fp:
         json.dump(z_scores, fp)
+
+    clusterer = TCRMultiClusterer(
+        file_1=cd4_filename,
+        file_2=dn_filename,
+        species="mouse",
+        outdir=results_dir
+    )
+    pd.DataFrame(clusterer.result).transpose().to_csv(os.path.join(results_dir, 'cluster_df.csv'))
