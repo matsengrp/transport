@@ -60,15 +60,15 @@ scores_by_cutoff_dict= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 p_val_dict = defaultdict(dict)
 for bg_repfile in bg_repfiles:
-    obs_scorer = TCRScorer(file_1=cd4_file, file_2=bg_repfile)
+    obs_scorer = TCRScorer(file_1=cd4_file, file_2=bg_repfile, species="mouse")
     obs_scores = obs_scorer.enrichment_dict.values()
 
     tcrs = [x[:-1] for x in open(bg_repfile,'r')]
     unique_tcrs = list(dict.fromkeys(tcrs))
     N1 = len(unique_tcrs)
 
-    fg_scorers = [TCRScorer(x, bg_repfile) for x in fg_repfiles]
-    bg_scorers = [TCRScorer(x, bg_repfile) for x in bg_repfiles if x != bg_repfile]
+    fg_scorers = [TCRScorer(x, bg_repfile, species="mouse") for x in fg_repfiles]
+    bg_scorers = [TCRScorer(x, bg_repfile, species="mouse") for x in bg_repfiles if x != bg_repfile]
 
     fg_enrichments = [get_enrichments(fg_scorer, DEFAULT_NEIGHBOR_RADIUS) for fg_scorer in fg_scorers]
     bg_enrichments = [get_enrichments(bg_scorer, DEFAULT_NEIGHBOR_RADIUS) for bg_scorer in bg_scorers]

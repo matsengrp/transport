@@ -5,10 +5,15 @@ import pandas as pd
 
 class TCRDist():
     exe = 'bin/tcrdists'
-    db ='/fh/fast/matsen_e/bolson2/transport/iel_data/fake_pubtcrs_db_mouse'
 
-    def __init__(self):
-        pass
+    def __init__(self, species):
+        self.species = species
+        if self.species == "mouse":
+            self.db = "/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse"
+        elif self.species == "human":
+            self.db = "/loc/no-backup/pbradley/share/pot_data/db"
+        else:
+            raise Exception("Unsupported species (can only be mouse or human)")
 
     def get_raw_distance_matrix( 
         self,
