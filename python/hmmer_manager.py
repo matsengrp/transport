@@ -47,10 +47,17 @@ class HMMerManager():
         print(command)
         os.system(command)
 
-    def run_hmmsearch(self, hmm_filename, sequence_database, outfile):
-        command = 'hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, sequence_database)
+    def run_hmmsearch(self, hmm_filename, query_sequences, outfile, sequence_ids):
+        seq_records = [SeqRecord(Seq(sequence), id=seq_id) for sequence, seq_id in zip(query_sequences, sequence_ids)]
+        query_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], "hmmsearch_query.fasta")
+        with open(query_filename, "w") as output_handle:
+            SeqIO.write(seq_records, output_handle, "fasta")
+
+        command = 'hmmsearch --tblout {} -E 10000 {} {}'.format(outfile, hmm_filename, query_filename)
         print(command)
         command_result = os.system(command)
+        #os.remove(query_filename)
+
         if command_result:
             raise Exception("hmmsearch command did not execute successfully")
 

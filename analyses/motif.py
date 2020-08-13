@@ -13,6 +13,7 @@ sys.path.append(os.getcwd())
 from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, DIST_MATRICES, JSON_OUTPUT, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.tcr_clusterer import TCRClusterer
+from python.utils import extract_cdr3s
 
 with open(os.path.join(DIRECTORIES[JSON_OUTPUT], 'empirical_fg_bg_nbhd_stats.json')) as f:
     result = json.load(f)
@@ -54,7 +55,7 @@ def run_cluster_analysis():
 def get_profile_from_subject_cluster(subject, cluster_radius):
     cluster_objects = get_cluster_objects_from_subject(subject + ".tcrs")
     cluster = cluster_objects[1][cluster_radius]['tcrs'] # Radius obtained from breakpoint script in R
-    cluster_cdr3s = [s.split(',')[1] for s in cluster]
+    cluster_cdr3s = extract_cdr3s(cluster) 
 
     cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.fasta")
     cluster_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.sto")

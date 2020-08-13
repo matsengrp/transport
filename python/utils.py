@@ -70,3 +70,6 @@ def append_id_column(df):
     if 'tcr' not in df.columns:
         df['tcr'] = [','.join([gene, cdr3]) for gene, cdr3 in zip(df['v_gene'], df['cdr3'])]
     return df
+
+def extract_cdr3s(sequences):
+    return [s.split(',')[1] for s in sequences]

@@ -9,11 +9,12 @@ import pandas as pd
 
 sys.path.append('.')
 
-from common.params import DIRECTORIES, DMAX, JSON_OUTPUT
+from common.params import DIRECTORIES, DMAX, JSON_OUTPUT, TMP_OUTPUT
+from python.hmmer_manager import HMMerManager
 from python.randomization_test import RandomizationTest
 from python.tcr_multi_clusterer import TCRMultiClusterer
 from python.tcr_scorer import TCRScorer
-from python.utils import get_df_from_file
+from python.utils import extract_cdr3s, get_df_from_file
 
 def get_filename_from_subject(subject, file_dir):
     filename = file_dir + subject + '_B.tcrs'
@@ -57,4 +58,28 @@ if __name__ == "__main__":
         species="mouse",
         outdir=results_dir
     )
-    pd.DataFrame(clusterer.result).transpose().to_csv(os.path.join(results_dir, 'cluster_df.csv'))
+    cluster_df = pd.DataFrame(clusterer.result).transpose()
+    cluster_df['tcr'] = cluster_df.index
+    cluster_df['motif'] = "N/A"
+
+    hmm_output_dir = "output/hmm/cd4_dn"
+    hmmer_manager = HMMerManager()
+    sequences = list(clusterer.result.keys())
+    cdr3s = extract_cdr3s(sequences)
+
+    for cluster, motif_name in zip([1, 2, 3], ["Ida", "Revere", "Tremont"]):
+        search_result = hmmer_manager.run_hmmsearch(
+            hmm_filename=os.path.join(hmm_output_dir, f"cluster_{cluster}/seqs.hmm"),
+            query_sequences=extract_cdr3s(list(clusterer.result.keys())),
+            outfile=os.path.join(DIRECTORIES[TMP_OUTPUT], f"{motif_name}_hmmsearch.out"),
+            sequence_ids=sequences
+        )
+        e_values = [float(i['e_value']) for i in search_result]
+        motifs = cluster_df['motif']
+        for i in range(len(e_values)):
+            if e_values[i] < 1e-8 and motifs[i] == "N/A":
+                tcr = search_result[i]['target_name']
+                cluster_df.loc[cluster_df['tcr'] == tcr, 'motif'] = motif_name
+
+    cluster_df.to_csv(os.path.join(results_dir, 'cluster_df.csv'))
+    import pdb; pdb.set_trace()
