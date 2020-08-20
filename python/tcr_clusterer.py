@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import compress
+import json
 import operator
 import os
 
@@ -41,6 +42,9 @@ class TCRClusterer():
             neighborhood_enrichments = list(compress(self.scores, full_mask))
             neighborhood_tcrs = list(compress(self.unique_tcrs, full_mask))
             neighborhood_cdr3s = [s.split(',')[1] for s in neighborhood_tcrs]
+            neighborhood_v_genes = [s.split(',')[0] for s in neighborhood_tcrs]
+
+
             annulus_enrichments = list(compress(self.scores, annulus_mask))
             self.all_radii_dict[radius] = {
                 "mean_enrichment": np.mean(neighborhood_enrichments),
@@ -57,12 +61,6 @@ class TCRClusterer():
             with open(alignment_infile, "w") as output_handle:
                 SeqIO.write(records, output_handle, "fasta")
             
-            #hmmer_manager.run_hmmalign(alignment_infile)
-            #hmmer_manager.run_hmmbuild()
-            #hmmer_manager.run_hmmstat()
-
-            #self.all_radii_dict[radius]['entropy'] = hmmer_manager.hmm_stats['relent']
-
             previous_radius = radius
         
         self.df = pd.DataFrame.from_dict(
@@ -89,5 +87,9 @@ class TCRClusterer():
 
 
         self.cluster_dict = self.all_radii_dict[self.breakpoint_radius]
+        with open(os.path.join(outdir, 'cluster_info.json'), 'w') as f:
+            json.dump({'centroid': max_score_tcr, 'radius': self.breakpoint_radius}, f)
+
         self.is_in_cluster = [tcr in self.cluster_dict['tcrs'] for tcr in self.unique_tcrs]
         self.cluster_df = pd.DataFrame({'tcr': self.unique_tcrs, 'score': self.scores, 'is_in_cluster': self.is_in_cluster})
+        self.cluster_df.loc[self.cluster_df['is_in_cluster'], 'tcr'].to_csv(os.path.join(outdir, 'cluster_tcrs.csv'))
