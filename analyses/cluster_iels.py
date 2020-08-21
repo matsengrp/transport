@@ -32,7 +32,10 @@ if __name__ == "__main__":
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
 
-    subjects = [f"DN_{x}" for x in range(1, 23 + 1)]
+    dn_subjects = [f"DN_{x}" for x in range(1, 23 + 1)]
+    cd4_subjects = [f"CD4_{x}" for x in range(1, 23 + 1)]
+    cd8_subjects = [f"CD8_{x}" for x in range(1, 23 + 1)]
+    subjects = dn_subjects + cd4_subjects + cd8_subjects
     for subject in subjects:
         f = os.path.join(file_dir, f"{subject}_B.tcrs")
         cluster_df = pd.read_csv(f, header=None)
