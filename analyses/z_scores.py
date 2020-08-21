@@ -20,11 +20,12 @@ def get_filename_from_subject(subject, file_dir):
     filename = file_dir + subject + '_B.tcrs'
     return filename
 
+
 if __name__ == "__main__":
     file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
-    cd4_subject = 'CD4_16'
-    dn_subject = 'DN_18'
+    cd4_subject = 'CD4_17'
+    dn_subject = 'DN_15'
     cd8_subject = 'CD8_15'
 
     cd4_filename = get_filename_from_subject(cd4_subject, file_dir)

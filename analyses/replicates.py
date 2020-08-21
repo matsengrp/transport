@@ -48,8 +48,8 @@ bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain
 
 neighbor_cutoff_radii = [i + .5 for i in range(0, 200, 10)] # distance at which two single-chain tcrs are considered nbrs
 
-cd4_subject = 'CD4_16_B.tcrs'
-dn_subject = 'DN_18_B.tcrs'
+cd4_subject = 'CD4_17_B.tcrs'
+dn_subject = 'DN_15_B.tcrs'
 
 file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
 
