@@ -52,6 +52,9 @@ class RandomizationTest():
                 file_2=self.trial_2_file,
                 species=self.species
             )
+
+            os.remove(self.trial_1_file)
+            os.remove(self.trial_2_file)
     
             for tcr, score in trial_scorer.enrichment_dict.items():
                 if tcr in self.df_2_tcrs:

@@ -8,8 +8,12 @@ library(viridis)
 
 source("R/plot_utils.R")
 
-get_breakpoint_from_model <- function(seg_fit, default_bp=50) {
-    bp <- seg_fit[["psi"]][2]
+default_bp <- 50
+
+get_breakpoint_from_model <- function(seg_fit, default_bp=default_bp) {
+    tryCatch({
+        bp <- seg_fit[["psi"]][2]
+    }, error=function(cond) {})
     if(is.null(bp)) {
         bp <- default_bp
     }
@@ -22,9 +26,11 @@ csv_dir <- "output/csv"
 seg_dat <- fread(file.path(csv_dir, "seg.csv"))
 
 radii <- seg_dat[["radius"]]
+tryCatch({
 lm_fit <- lm(annulus_enrichment ~ radius, data=seg_dat)
 seg_fit <- segmented(lm_fit, npsi=1)
 breakpoint <- seg_fit %>% get_breakpoint_from_model
+}, error=function(cond){ breakpoint <- default_bp })
 cutoff_radius <- radii[which(radii <= breakpoint) %>% max]
 
 args <- commandArgs(trailingOnly=TRUE)
