@@ -8,9 +8,11 @@ if(!exists("fg_dat")) {
     source("R/load_score_datasets.R")
 }
 
-fg_dat <- fg_dat[fg_dat[["Group"]] == "foreground" & fg_dat[["TCRDistRadius"]] == 50.5, ]
+fg_dat <- fg_dat[fg_dat[["TCRDistRadius"]] == 50.5, ]
+bg_dat <- bg_dat[bg_dat[["TCRDistRadius"]] == 50.5, ]
 
-df_colnames <- c("score", "tcr", "ecdf", "subject", "motif")
+df_colnames <- c("score", "tcr", "ecdf", "subject", "motif", "group")
+
 cluster_df <- matrix(NA, nrow=0, ncol=length(df_colnames)) %>%
     data.table %>%
     setNames(df_colnames)
@@ -34,16 +36,31 @@ for(group in groups) {
         if(group == "DN") {
             subject_df <- subject_df[!duplicated(subject_df)]
 
-            loneliness_df <- fg_dat[fg_dat[["Subject"]] == paste0(subject, "_B"), ]
-            ecdf_function <- ecdf(loneliness_df[["Score"]])
-            loneliness_df[["ecdf"]] <- loneliness_df[["Score"]] %>% ecdf_function
+            bg_loneliness_df <- bg_dat[bg_dat[["Subject"]] == paste0(subject, "_B"), ]
+            bg_ecdf_function <- ecdf(bg_loneliness_df[["Score"]])
+            bg_loneliness_df[["ecdf"]] <- bg_loneliness_df[["Score"]] %>% bg_ecdf_function
 
             subject_df <- cbind.data.frame(
-                                score=loneliness_df[["Score"]],
-                                tcr=loneliness_df[["TCR"]],
-                                ecdf=loneliness_df[["ecdf"]],
+                                score=bg_loneliness_df[["Score"]],
+                                tcr=bg_loneliness_df[["TCR"]],
+                                ecdf=bg_loneliness_df[["ecdf"]],
                                 subject=subject,
-                                motif=subject_df[["motif"]]
+                                motif=subject_df[["motif"]],
+                                group="background"
+                               )
+            cluster_df <- rbind(cluster_df, subject_df)
+
+            fg_loneliness_df <- fg_dat[fg_dat[["Subject"]] == paste0(subject, "_B"), ]
+            fg_ecdf_function <- ecdf(fg_loneliness_df[["Score"]])
+            fg_loneliness_df[["ecdf"]] <- fg_loneliness_df[["Score"]] %>% fg_ecdf_function
+
+            subject_df <- cbind.data.frame(
+                                score=fg_loneliness_df[["Score"]],
+                                tcr=fg_loneliness_df[["TCR"]],
+                                ecdf=fg_loneliness_df[["ecdf"]],
+                                subject=subject,
+                                motif=subject_df[["motif"]],
+                                group="foreground"
                                )
 
             cluster_df <- rbind(cluster_df, subject_df)
@@ -60,11 +77,13 @@ for(group in groups) {
 p_ecdf <- cluster_df %>% 
     ggplot(aes(x=ecdf, y=..density.., color=motif)) + 
     geom_freqpoly() +
+    facet_wrap(vars(group)) +
     theme_minimal()
 
 p_score <- cluster_df %>% 
     ggplot(aes(x=score, y=..density.., color=motif)) + 
     geom_freqpoly() +
+    facet_wrap(vars(group)) +
     theme_minimal()
 
 p_prevalence <- prevalence_df %>%
