@@ -19,7 +19,7 @@ def get_cluster_memberships(query_file, cluster_dict):
     )
     dist_mat = TCRDist(species="mouse").get_raw_distance_matrix(
         query_file, 
-        os.path.join(DIRECTORIES[TMP_OUTPUT], centroid_file)
+        centroid_file
     )
     return list(dist_mat[:, 0] < cluster_dict['radius'])
 
@@ -50,4 +50,4 @@ if __name__ == "__main__":
         subject_results_dir = os.path.join(results_dir, subject)
         if not os.path.exists(subject_results_dir):
             os.makedirs(subject_results_dir)
-        cluster_df.to_csv(os.path.join(subject_results_dir, 'cluster_df.csv'))
+        cluster_df.to_csv(os.path.join(subject_results_dir, 'cluster_df.csv'), header=False, index=False)
