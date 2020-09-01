@@ -7,33 +7,51 @@ library(rjson)
 
 source("R/plot_utils.R")
 
+lm_eqn <- function(df){
+    m <- lm(bg_z_score ~ rand_z_score, df);
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+         list(a = format(unname(coef(m)[1]), digits = 2),
+              b = format(unname(coef(m)[2]), digits = 2),
+             r2 = format(summary(m)$r.squared, digits = 3)))
+    as.character(as.expression(eq));
+}
+
+
 json_dir = "output/json"
 z_score_dir = "output/z_score"
 dir.create(z_score_dir)
 
-dn_subject <- 'DN_18_B.tcrs'
+dn_subject <- 'DN_15_B'
+cd4_subject <- 'CD4_17_B'
 
-cluster_df <- fread("output/json/cluster_df.csv")
-cluster_df[cluster_df[["cluster"]] > 5, ][["cluster"]] <- 0
-cluster_df[cluster_df[["cluster"]] == 0, ][["cluster"]] <- "None"
+motif_levels <- c("N/A", "Ida", "Revere", "Tremont")
+
+cluster_df <- fread(file.path("output/json", gsub(cd4_subject, pattern="_B", replacement=""), "cluster_df.csv"))
+cluster_df[["motif"]] <- factor(cluster_df[["motif"]], levels=motif_levels)
+#cluster_df[cluster_df[["cluster"]] > 5, ][["cluster"]] <- 0
+#cluster_df[cluster_df[["cluster"]] == 0, ][["cluster"]] <- "None"
 
 
 results <- fromJSON(file=file.path(json_dir, 'replicate_z_scores.json'))
 df <- results %>% melt
 names(df) <- c("z_score", "group", "tcr", "subject")
-replicate_df <- df[df[['subject']] == dn_subject, ]
+replicate_df <- df[df[['subject']] == paste0(dn_subject, ".tcrs"), ]
 replicate_df[["tmp"]] <- NULL
 replicate_df[["cluster"]] <- rep(cluster_df[["cluster"]], 1, each=2) %>% sapply(toString)
+replicate_df[["motif"]] <- rep(cluster_df[["motif"]], 1, each=2) %>% sapply(toString) %>%
+    factor(levels=motif_levels)
 
-rand_results <- fromJSON(file=file.path(json_dir, 'rand_z_scores.json'))
+rand_results <- fromJSON(file=file.path(json_dir, gsub(cd4_subject, pattern="_B", replacement=""), 'rand_z_scores.json'))
 rand_df <- rand_results %>% melt
 names(rand_df) <- c("z_score", "tcr")
 rand_df[["group"]] <- 'randomization'
 rand_df[["cluster"]] <- cluster_df[["cluster"]] %>% sapply(toString)
+rand_df[["motif"]] <- cluster_df[["motif"]] %>% sapply(toString) %>%
+    factor(levels=motif_levels)
 
 
 tall_df <- rbind.data.frame(
-    replicate_df[, c('z_score', 'tcr', 'group', 'cluster')], 
+    replicate_df[, c('z_score', 'tcr', 'group', 'cluster', 'motif')], 
     rand_df
 )
 
@@ -50,9 +68,9 @@ wide_df <- bg_df %>%
     merge(rand_df, by='tcr')
 
 wide_df[['label']] <- wide_df[['tcr']] %>%
-    sapply(get_motif_label, subject="DN_18_B", e_value_threshold=1e-8)
+    sapply(get_motif_label, subject=dn_subject, e_value_threshold=1e-8)
 tall_df[['label']] <- tall_df[['tcr']] %>%
-    sapply(get_motif_label, subject="DN_18_B", e_value_threshold=1e-8)
+    sapply(get_motif_label, subject=dn_subject, e_value_threshold=1e-8)
 
 
 wide_df[["label"]] <- factor(wide_df[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida"))
@@ -60,19 +78,19 @@ wide_df[["label"]] <- cluster_df[["cluster"]] %>% sapply(function(x) { paste("cl
 tall_df[["label"]] <- wide_df[["label"]] # cluster_df[["cluster"]] %>% sapply(function(x) { paste("cluster", x) })
 p_scatter <- wide_df %>%
     ggplot() +
-    geom_point(aes(x=rand_z_score, y=bg_z_score, color=cluster, shape=cluster), alpha=0.6) +
-    scale_shape_manual(values = 0:10) +
+    geom_point(aes(x=rand_z_score, y=bg_z_score, color=motif, shape=motif), alpha=0.6) +
     geom_smooth(method="lm", aes(y=bg_z_score, x=rand_z_score)) +
     theme_minimal() +
+    geom_text(x=-1, y=8, label=lm_eqn(wide_df), parse = TRUE) +
     xlab("Randomization z-score") +
     ylab("Background z-score")
-ggsave(file.path(z_score_dir, "z_score_scatterplot.pdf"))
+ggsave(file.path(z_score_dir, gsub(cd4_subject, pattern="_B", replacement=""), "z_score_scatterplot.pdf"), width=8, height=6)
 
 
 
 p_densities <- tall_df[tall_df[['group']] != 'foreground', ] %>%
-    ggplot(aes(x=z_score, y=..density.., color=cluster)) +
-    facet_wrap(vars(group), dir="v", scales="free") +
+    ggplot(aes(x=z_score, y=..density.., color=motif)) +
+    facet_wrap(vars(group), scales="free", dir="v") +
     theme_minimal() +
     geom_density()
-ggsave(file.path(z_score_dir, "z_score_densities.pdf"))
+ggsave(file.path(z_score_dir, gsub(cd4_subject, pattern="_B", replacement=""), "z_score_densities.pdf"), width=8, height=6)
