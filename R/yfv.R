@@ -110,7 +110,6 @@ for(s in subjects) {
     dir <- file.path("output/hmm", s)
     for(cluster in clusters) {
         tcrs <- fread(file.path(dir, cluster, "cluster_tcrs.csv"), header=T)
-        if(nrow(tcrs) > 3) {
         v_genes <- tcrs[["tcr"]] %>% sapply(function(x) { strsplit(x, ",") %>% unlist %>% first })
         cdr3s <- tcrs[["tcr"]] %>% sapply(function(x) { strsplit(x, ",") %>% unlist %>% last })
         cluster_df <- rbind(
@@ -123,8 +122,6 @@ for(s in subjects) {
                                        cluster=cluster
                                       )
                             )
-        }
-
     }
 }
 cluster_df[["v_gene_no_allele"]] <- cluster_df[["v_gene"]] %>%
@@ -135,27 +132,77 @@ common_hits_colnames <- c("subject", "timepoint", "cluster", "hit_rate")
 common_hits <- matrix(NA, nrow=0, ncol=length(common_hits_colnames)) %>%
     data.table %>%
     setNames(common_hits_colnames)
-for(tmp_subject in cluster_df[["subject"]] %>% unique) {
-    for(tmp_timepoint in cluster_df[["timepoint"]] %>% unique) {
-        for(tmp_cluster in clusters) {
-            sub_df <- cluster_df[cluster_df[["subject"]] == tmp_subject & 
-                                 cluster_df[["timepoint"]] == tmp_timepoint &
-                                 cluster_df[["cluster"]] == tmp_cluster, ]
-            hit_rate <- sub_df[["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]] %>% mean
-            common_hits <- rbind(
-                                 common_hits,
-                                 data.table(subject=tmp_subject,
-                                            timepoint=tmp_timepoint,
-                                            cluster=tmp_cluster,
-                                            hit_rate=hit_rate
-                                           )
-                                 )
+common_hits_without_subject <- common_hits
+common_hits_without_subject[["subject"]] <- NULL
+common_hits_without_cluster <- common_hits
+common_hits_without_cluster[["cluster"]] <- NULL
+common_hits_without_subject$"agg_hit_rate" <- NA
+cluster_df[["cluster_int"]] <- cluster_df[["cluster"]] %>%
+    sapply(function(x) { strsplit(x, split="_") %>% unlist %>% last %>% as.numeric })
+for(tmp_timepoint in cluster_df[["timepoint"]] %>% unique) {
+    for(tmp_cluster in clusters) {
+        sub_df <- cluster_df[
+                             cluster_df[["timepoint"]] == tmp_timepoint &
+                             cluster_df[["cluster"]] == tmp_cluster, ]
+        agg_sub_df <- cluster_df[
+                             cluster_df[["timepoint"]] == tmp_timepoint &
+                             cluster_df[["cluster_int"]] <= strsplit(tmp_cluster, split="_") %>% unlist %>% last %>% as.numeric, ]
+        hits <- {}
+        agg_hits <- {}
+        for(tmp_subject in cluster_df[["subject"]] %>% unique) {
+            hits <- c(hits, sub_df[sub_df[["subject"]] == tmp_subject, ][["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]])
+            agg_hits <- c(agg_hits, agg_sub_df[agg_sub_df[["subject"]] == tmp_subject, ][["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]])
         }
+        hit_rate <- hits %>% mean
+        agg_hit_rate <- agg_hits %>% mean
+        common_hits_without_subject <- rbind(
+                             common_hits_without_subject,
+                             data.table(
+                                        timepoint=tmp_timepoint,
+                                        cluster=tmp_cluster,
+                                        hit_rate=hit_rate,
+                                        agg_hit_rate=agg_hit_rate
+                                       )
+                             )
+    }
+    for(tmp_subject in cluster_df[["subject"]] %>% unique) {
+        sub_df <- cluster_df[
+                             cluster_df[["cluster_int"]] <= 10 &
+                             cluster_df[["timepoint"]] == tmp_timepoint &
+                             cluster_df[["subject"]] == tmp_subject, ]
+        hit_rate <- sub_df[["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]] %>% mean
+        common_hits_without_cluster <- rbind(
+                             common_hits_without_cluster,
+                             data.table(
+                                        subject=tmp_subject,
+                                        timepoint=tmp_timepoint,
+                                        hit_rate=hit_rate
+                                       )
+                             )
     }
 }
 common_hits[["cluster"]] <- common_hits[["cluster"]] %>%
     sapply(gsub, pattern="cluster_", replacement="") %>%
     factor(levels=1:length(clusters))
+common_hits_without_subject[["cluster"]] <- common_hits_without_subject[["cluster"]] %>%
+    sapply(gsub, pattern="cluster_", replacement="") %>%
+    factor(levels=1:length(clusters))
+p_hits_no_cluster <- common_hits_without_cluster %>%
+    ggplot(aes(x=subject, y=hit_rate, fill=subject)) +
+    geom_bar(stat="identity") +
+    ylim(0, 1) +
+    facet_wrap(vars(timepoint)) 
+p_hits_no_subject <- common_hits_without_subject %>%
+    ggplot(aes(x=cluster, y=hit_rate)) +
+    geom_bar(stat="identity") +
+    ylim(0, 1) +
+    facet_wrap(vars(timepoint)) 
+p_agg_hits_no_subject <- common_hits_without_subject %>%
+    ggplot(aes(x=cluster, y=agg_hit_rate)) +
+    geom_point() +
+    geom_line(aes(x=as.numeric(cluster), y=agg_hit_rate)) +
+    ylim(0, 1) +
+    facet_wrap(vars(timepoint)) 
 p_hits <- common_hits %>%
     ggplot(aes(x=cluster, y=hit_rate)) +
     geom_boxplot(outlier.size=-1) +
