@@ -46,15 +46,9 @@ chain = 'B'
 fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
 bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
 
-neighbor_cutoff_radii = [i + .5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
-
-cd4_subject = 'CD4_17_B.tcrs'
-dn_subject = 'DN_15_B.tcrs'
+neighbor_cutoff_radii = [i + 8.5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
 
 file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
-
-cd4_file = os.path.join(file_dir, cd4_subject)
-
 
 scores_by_cutoff_dict= defaultdict(dict)
 z_score_dict = defaultdict(dict)

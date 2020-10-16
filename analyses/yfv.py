@@ -1,12 +1,11 @@
 from collections import defaultdict
+from glob import glob
 import json
+import os
+import sys
 
 import numpy as np
 import ntpath
-
-from glob import glob
-import os
-import sys
 
 sys.path.append(os.getcwd())
 from common.params import DIRECTORIES, HMM_OUTPUT
@@ -18,6 +17,11 @@ seq_data_dir = 'data/yfv'
 def run_yfv_analysis(file_1, file_2, outdir):
     tcr_multi_cluster = TCRMultiClusterer(file_1=file_1, file_2=file_2, species="human", outdir=outdir)
 
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P1_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_-7")
+)
 run_yfv_analysis(
     os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "P1_0_F2_.txt.top1000.tcrs"),
@@ -32,6 +36,11 @@ run_yfv_analysis(
     os.path.join(seq_data_dir, "P1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "P1_45_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "P2_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "P2_0_-7")
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "P2_0_F1_.txt.top1000.tcrs"),
@@ -50,6 +59,11 @@ run_yfv_analysis(
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q1_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_-7")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "Q1_0_F2_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_0")
 )
@@ -62,6 +76,11 @@ run_yfv_analysis(
     os.path.join(seq_data_dir, "Q1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "Q1_45_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "Q2_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "Q2_0_-7")
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "Q2_0_F1_.txt.top1000.tcrs"),
@@ -80,6 +99,11 @@ run_yfv_analysis(
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S1_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_-7")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "S1_0_F2_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_0")
 )
@@ -92,6 +116,11 @@ run_yfv_analysis(
     os.path.join(seq_data_dir, "S1_0_F1_.txt.top1000.tcrs"),
     os.path.join(seq_data_dir, "S1_45_F1_.txt.top1000.tcrs"),
     outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S1_0_45")
+)
+run_yfv_analysis(
+    os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),
+    os.path.join(seq_data_dir, "S2_pre0_F1_.txt.top1000.tcrs"),
+    outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "S2_0_-7")
 )
 run_yfv_analysis(
     os.path.join(seq_data_dir, "S2_0_F1_.txt.top1000.tcrs"),

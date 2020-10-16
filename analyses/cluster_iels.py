@@ -40,7 +40,7 @@ if __name__ == "__main__":
         f = os.path.join(file_dir, f"{subject}_B.tcrs")
         cluster_df = pd.read_csv(f, header=None)
         cluster_df['motif'] = "N/A"
-        for cluster, motif_name in zip([1, 2, 3], ["Ida", "Revere", "Tremont"]):
+        for cluster, motif_name in zip([1, 2, 3], ["Tremont", "Revere", "Ida"]):
             with open(os.path.join(hmm_output_dir,  f"cluster_{cluster}", "cluster_info.json")) as fp:
                 cluster_dict = json.load(fp)
             
