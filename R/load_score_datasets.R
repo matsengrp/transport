@@ -1,3 +1,5 @@
+library(rjson)
+
 source("R/plot_utils.R")
 
 json_dir = "output/json"

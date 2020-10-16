@@ -168,6 +168,7 @@ ggsave(file.path(cutoff_dir, "score_vs_radius.pdf"), width=8, height=6)
 
 p2 <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) +
+    theme_minimal() +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbor count")
 ggsave(file.path(cutoff_dir, "score_vs_neighbors.pdf"), width=8, height=6)
@@ -176,6 +177,7 @@ p2_tcr <- dat[dat$TCR %in%
               (dat$TCR %>% unique %>% sample(20)), ] %>% 
     ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) +
+    theme_minimal() +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbor count") +
     facet_wrap(vars(TCR)) +
@@ -184,6 +186,7 @@ ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_tcr.pdf"), width=12, height=
 
 p2_facet <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) + 
+    theme_minimal() + 
     facet_wrap(vars(TCRDistRadius)) +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbr count")
@@ -191,6 +194,7 @@ ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_cutoff.pdf"), width=12, heig
 
 p2_facet_scaled <- dat %>% ggplot(aes(x=Score, y=NeighborCount, colour=Group)) + 
     geom_point(size=0.5) + 
+    theme_minimal() +
     facet_wrap(vars(TCRDistRadius), scales="free") +
     xlab("Mean per-tcr loneliness") +
     ylab("Neighbr count")
@@ -198,16 +202,18 @@ ggsave(file.path(cutoff_dir, "score_vs_neighbors_by_cutoff_scaled.pdf"), width=1
 
 p3 <- dat %>% ggplot(aes(x=TCRDistRadius, y=NeighborCount)) + 
     geom_point(size=0.1) +
+    theme_minimal() +
     xlab("TCRdist radius") +
     ylab("Neighbor count")
 ggsave(file.path(cutoff_dir, "neighbors_vs_radius.pdf"), width=8, height=6)
 
 p4 <- dat %>% ggplot(aes(x=Score, colour=Group)) + 
     stat_ecdf() + 
-    facet_wrap(vars(TCRDistRadius)) +
+    theme_minimal() +
+    facet_wrap(vars(TCRDistRadius), scales="free") +
     xlab("Mean per-tcr loneliness") +
     ylab("ECDF")
-ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"), height=20, width=20)
+ggsave(file.path(cutoff_dir, "ecdfs_by_radius.pdf"), height=8, width=12)
 
 fg_plots <- {}
 bg_plots <- {}
