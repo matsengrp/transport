@@ -36,14 +36,12 @@ cluster_names <- list(
                       "5"="N/A"
                      )
 
-
 cluster_df <- fread(file.path("output/json", gsub(cd4_subject, pattern="_B", replacement=""), "cluster_df.csv"))
 cluster_df[["motif"]] <- factor(cluster_df[["motif"]], levels=motif_levels)
 #cluster_df[cluster_df[["cluster"]] > 5, ][["cluster"]] <- 0
 #cluster_df[cluster_df[["cluster"]] == 0, ][["cluster"]] <- "None"
 cluster_df[["cluster"]] <- cluster_df[["cluster"]] %>%
     sapply(function(x) { cluster_names[[toString(x)]] })
-
 
 results <- fromJSON(file=file.path(json_dir, 'replicate_z_scores.json'))
 df <- results %>% melt
@@ -68,7 +66,6 @@ tall_df <- rbind.data.frame(
     rand_df
 )
 
-
 names(rand_df)[which(names(rand_df) == 'z_score')] <- 'rand_z_score'
 
 bg_df <- replicate_df[replicate_df[['group']] == 'background', c('z_score', 'tcr')]
@@ -76,10 +73,8 @@ names(bg_df)[which(names(bg_df) == 'z_score')] <- 'bg_z_score'
 fg_df <- replicate_df[replicate_df[['group']] == 'foreground', c('z_score', 'tcr')]
 names(fg_df)[which(names(fg_df) == 'z_score')] <- 'fg_z_score'
 
-
 wide_df <- bg_df %>%
     merge(rand_df, by='tcr')
-
 wide_df[['label']] <- wide_df[['tcr']] %>%
     sapply(get_motif_label, subject=dn_subject, e_value_threshold=1e-8)
 tall_df[['label']] <- tall_df[['tcr']] %>%
