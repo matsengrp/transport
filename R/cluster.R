@@ -13,7 +13,7 @@ fg_dat_sub <- fg_dat[fg_dat[["TCRDistRadius"]] == 48.5, ]
 bg_dat_sub <- bg_dat[bg_dat[["TCRDistRadius"]] == 48.5, ]
 
 df_colnames <- c("score", "tcr", "ecdf", "subject", "motif", "group")
-motif_levels <- c("Tremont", "Revere", "Ida", "N/A")
+motif_levels <- c("OT-Tremont", "OT-Revere", "OT-Ida", "N/A")
 
 cluster_df <- matrix(NA, nrow=0, ncol=length(df_colnames)) %>%
     data.table %>%
@@ -26,7 +26,7 @@ prevalence_df <- matrix(NA, nrow=0, ncol=length(prevalence_df_colnames)) %>%
     setNames(prevalence_df_colnames)
 
 groups <- c("DN", "CD4", "CD8")
-motifs <- c("Tremont", "Revere", "Ida")
+motifs <- c("OT-Tremont", "OT-Revere", "OT-Ida")
 dn_subjects <- 1:23 %>% sapply(function(x) { paste0("DN_", x) })
 cd4_subjects <- 1:23 %>% sapply(function(x) { paste0("DN_", x) })
 cd8_subjects <- 1:23 %>% sapply(function(x) { paste0("DN_", x) })
@@ -37,6 +37,16 @@ for(group in groups) {
         subject_df <- file.path(cluster_df_dir, subject, "cluster_df.csv") %>%
             data.table::fread(header=FALSE)  %>%
             setNames(c("v_gene", "cdr3", "motif"))
+        subject_df[["motif"]] <- subject_df[["motif"]] %>%
+            sapply(
+                function(x) { 
+                    if(x != "N/A") { 
+                        paste("OT", x, sep="-")
+                    } else {
+                        "N/A"
+                    }
+                } 
+            )
         for(motif in motifs) {
             prevalence <- mean(subject_df[["motif"]] == motif)
             counts <- sum(subject_df[["motif"]] == motif)
@@ -79,16 +89,24 @@ for(group in groups) {
 }
 
 prevalence_df[["motif"]] <- factor(prevalence_df[["motif"]], levels=motif_levels)
+prevalence_df[["group"]] <- factor(prevalence_df[["group"]], levels=c("DN", "CD4", "CD8"))
 
 outdir <- "output/iel_clusters/motif_metrics"
 dir.create(outdir)
 
-motif_colors <- brewer.pal(5,"Set1")
+motif_colors <- brewer.pal(4, "Dark2")
 names(motif_colors) <- levels(prevalence_df[["motif"]])
-color_scale <- scale_colour_manual(name = "motif color", values = motif_colors)
+color_scale <- scale_colour_manual(name = "cluster", values = motif_colors)
+
+# Rename motif to cluster for consistency in the manuscript
+cluster_df[["cluster"]] <- cluster_df[["motif"]]
+cluster_df[["motif"]] <- NULL
+prevalence_df[["cluster"]] <- prevalence_df[["motif"]]
+prevalence_df[["motif"]] <- NULL
+
 
 p_ecdf <- cluster_df %>% 
-    ggplot(aes(x=ecdf, y=..density.., color=motif, linetype=motif)) + 
+    ggplot(aes(x=ecdf, y=..density.., color=cluster, linetype=cluster)) + 
     geom_freqpoly() +
     facet_wrap(vars(group)) +
     theme_minimal() +
@@ -96,25 +114,26 @@ p_ecdf <- cluster_df %>%
 ggsave(file.path(outdir, "ecdf.pdf"), width=8, height=3)
 
 p_score <- cluster_df %>% 
-    ggplot(aes(x=score, y=..density.., color=motif, linetype=motif)) + 
+    ggplot(aes(x=score, y=..density.., color=cluster, linetype=cluster)) + 
     geom_freqpoly() +
-    facet_wrap(vars(group), dir="v") +
+    facet_wrap(vars(group)) +
     theme_minimal() +
     color_scale
-ggsave(file.path(outdir, "score.pdf"), width=6, height=6)
+ggsave(file.path(outdir, "score.pdf"), width=8, height=3)
 
 p_prevalence <- prevalence_df %>%
-    ggplot(aes(x=prevalence, y=..density.., group=interaction(motif, group), colour=motif, linetype=group)) +
+    ggplot(aes(x=prevalence, y=..density.., group=interaction(cluster, group), colour=cluster, linetype=group)) +
     geom_freqpoly(bins=10) +
-    facet_wrap(vars(motif)) +
+    facet_wrap(vars(cluster)) +
     theme_minimal() +
+    xlim(c(0, max(prevalence_df[["prevalence"]]))) +
     color_scale
 ggsave(file.path(outdir, "prevalence.pdf"), width=10, height=3)
 
 p_counts <- prevalence_df %>%
-    ggplot(aes(x=count, y=..density.., group=interaction(motif, group), colour=motif, linetype=group)) +
+    ggplot(aes(x=count, y=..density.., group=interaction(cluster, group), colour=cluster, linetype=group)) +
     geom_freqpoly(bins=10) +
-    facet_wrap(vars(motif)) +
+    facet_wrap(vars(cluster)) +
     theme_minimal() +
     color_scale
 ggsave(file.path(outdir, "counts.pdf"), width=10, height=4)

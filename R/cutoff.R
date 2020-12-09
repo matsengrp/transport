@@ -21,7 +21,7 @@ e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
 if(FALSE) {
     xs <- mds_fit[, 1]
     ys <- mds_fit[, 2]
-    scores <- fg_dat[fg_dat$TCRDistRadius == 50.5, ]$Score
+    scores <- fg_dat[fg_dat$TCRDistRadius == 48.5, ]$Score
     tcrs <- (dat$tcr %>% rle %$% values)
     
     left_tcr_cluster <- tcrs[xs > -70 & xs < -50 & ys > 20 & ys < 40 & scores > 1500]
@@ -39,7 +39,7 @@ if(TRUE) {
 
 fg_mds_dat_by_subject <- fg_dat %>% 
     build_mds_dataframe(
-        radius=50.5,
+        radius=48.5,
         subjects=subjects,
         add_extra_metrics=TRUE,
         e_value_dat=e_value_dat
@@ -47,7 +47,7 @@ fg_mds_dat_by_subject <- fg_dat %>%
     cbind.data.frame(group="foreground")
 bg_mds_dat_by_subject <- bg_dat %>% 
     build_mds_dataframe(
-        radius=50.5,
+        radius=48.5,
         subjects=subjects,
         add_extra_metrics=TRUE,
         e_value_dat=e_value_dat
@@ -137,10 +137,10 @@ snapshot_dir <- "output/snapshots"
 dir.create(snapshot_dir)
 for(subject in subjects) {
     fg_snapshot_dat  <- fg_dat %>%
-       build_mds_dataframe(radius=50.5, subjects=subject) %>%
+       build_mds_dataframe(radius=48.5, subjects=subject) %>%
        cbind.data.frame(Group="foreground")
     bg_snapshot_dat  <- bg_dat %>%
-       build_mds_dataframe(radius=50.5, subject=subject) %>%
+       build_mds_dataframe(radius=48.5, subject=subject) %>%
        cbind.data.frame(Group="background")
     snapshot_dat <- rbind.data.frame(fg_snapshot_dat, bg_snapshot_dat)
     snapshot_dat %>%
@@ -152,8 +152,8 @@ for(subject in subjects) {
     ggsave(file.path(snapshot_dir, paste0(subject, ".pdf")), width=10, height=6)
 }
 
-fg_mds_dat_by_subject <- fg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
-bg_mds_dat_by_subject <- bg_dat %>% build_mds_dataframe(radius=50.5, subjects=subjects)
+fg_mds_dat_by_subject <- fg_dat %>% build_mds_dataframe(radius=48.5, subjects=subjects)
+bg_mds_dat_by_subject <- bg_dat %>% build_mds_dataframe(radius=48.5, subjects=subjects)
 by_subject_scores <- as.numeric(c(fg_mds_dat_by_subject$score, bg_mds_dat_by_subject$score))
 
 cutoff_dir <- "output/cutoff"
@@ -228,7 +228,7 @@ bg_mds_plots <- plot_grid(plotlist=bg_plots)
 ggsave(file.path(cutoff_dir, "bg_mds.pdf"), width=12, height=10)
 
 bg_dat %>%
-    build_mds_dataframe(radius=50.5, subjects=subjects) %>%
+    build_mds_dataframe(radius=48.5, subjects=subjects) %>%
     ggplot(aes(x=x1, y=x2, color=score)) + 
        geom_point(size=0.5) +
        scale_colour_viridis_c(breaks=by_subject_scores) +

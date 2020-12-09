@@ -1,3 +1,4 @@
+library(cowplot)
 library(data.table)
 library(dplyr)
 library(ggplot2)
@@ -53,7 +54,19 @@ val_df[["v_gene"]] <- val_df[["v.segm"]] %>%
 val_df[["tcr"]] <- paste(val_df[["v_gene"]], val_df[["cdr3"]], sep=",")
 
 yfv_df <- val_df[val_df[["antigen.species"]] == "YellowFeverVirus", ]
+yfv_df[["v_gene_no_allele"]] <- yfv_df[["v_gene"]] %>%
+    sapply(gsub, pattern="\\*\\d*", replacement="")
+yfv_df[["tcr_no_allele"]] <- paste(yfv_df[["v_gene_no_allele"]],
+                                       yfv_df[["cdr3"]],
+                                       sep=","
+                                      )
 cmv_df <- val_df[val_df[["antigen.species"]] == "CMV", ]
+cmv_df[["v_gene_no_allele"]] <- cmv_df[["v_gene"]] %>%
+    sapply(gsub, pattern="\\*\\d*", replacement="")
+cmv_df[["tcr_no_allele"]] <- paste(cmv_df[["v_gene_no_allele"]],
+                                       cmv_df[["cdr3"]],
+                                       sep=","
+                                      )
 
 pog_df <- fread("R/data/pogorelyy_tcrs.txt")
 pog_df[["tcr"]] <- paste(pog_df[["bestVGene"]], pog_df[["CDR3.amino.acid.sequence"]], sep=",")
@@ -97,6 +110,12 @@ for(subject in subjects) {
     subject_df <- fread(file.path("data/yfv", label_to_dataset(subject)), header=F)
     names(subject_df) <- c("v_gene", "cdr3")
     subject_df[["tcr"]] <- paste(subject_df[["v_gene"]], subject_df[["cdr3"]], sep=",")
+    subject_df[["v_gene_no_allele"]] <- subject_df[["v_gene"]] %>%
+        sapply(gsub, pattern="\\*\\d*", replacement="")
+    subject_df[["tcr_no_allele"]] <- paste(subject_df[["v_gene_no_allele"]],
+                                           subject_df[["cdr3"]],
+                                           sep=","
+                                          )
     subject_dfs[[subject]] <- subject_df
 }
 
@@ -136,6 +155,7 @@ common_hits_without_subject <- common_hits
 common_hits_without_subject[["subject"]] <- NULL
 common_hits_without_cluster <- common_hits
 common_hits_without_cluster[["cluster"]] <- NULL
+common_hits_without_cluster$"cluster_cutoff" <- NA
 common_hits_without_subject$"agg_hit_rate" <- NA
 cluster_df[["cluster_int"]] <- cluster_df[["cluster"]] %>%
     sapply(function(x) { strsplit(x, split="_") %>% unlist %>% last %>% as.numeric })
@@ -158,7 +178,7 @@ for(tmp_timepoint in cluster_df[["timepoint"]] %>% unique) {
         common_hits_without_subject <- rbind(
                              common_hits_without_subject,
                              data.table(
-                                        timepoint=tmp_timepoint,
+                                        timepoint=paste0("0d vs ", tmp_timepoint, "d"),
                                         cluster=tmp_cluster,
                                         hit_rate=hit_rate,
                                         agg_hit_rate=agg_hit_rate
@@ -166,19 +186,22 @@ for(tmp_timepoint in cluster_df[["timepoint"]] %>% unique) {
                              )
     }
     for(tmp_subject in cluster_df[["subject"]] %>% unique) {
-        sub_df <- cluster_df[
-                             cluster_df[["cluster_int"]] <= 10 &
-                             cluster_df[["timepoint"]] == tmp_timepoint &
-                             cluster_df[["subject"]] == tmp_subject, ]
-        hit_rate <- sub_df[["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]] %>% mean
-        common_hits_without_cluster <- rbind(
-                             common_hits_without_cluster,
-                             data.table(
-                                        subject=tmp_subject,
-                                        timepoint=tmp_timepoint,
-                                        hit_rate=hit_rate
-                                       )
-                             )
+        for(cluster_cutoff in c(2, 10)) {
+            sub_df <- cluster_df[
+                                 cluster_df[["cluster_int"]] <= cluster_cutoff &
+                                 cluster_df[["timepoint"]] == tmp_timepoint &
+                                 cluster_df[["subject"]] == tmp_subject, ]
+            hit_rate <- sub_df[["tcr"]] %in% pog_df[pog_df[["donor"]] == tmp_subject, ][["tcr"]] %>% mean
+            common_hits_without_cluster <- rbind(
+                                 common_hits_without_cluster,
+                                 data.table(
+                                            subject=tmp_subject,
+                                            timepoint=paste0("0d vs ", tmp_timepoint, "d"),
+                                            hit_rate=hit_rate,
+                                            cluster_cutoff=cluster_cutoff
+                                           )
+                                 )
+        }
     }
 }
 common_hits[["cluster"]] <- common_hits[["cluster"]] %>%
@@ -187,22 +210,44 @@ common_hits[["cluster"]] <- common_hits[["cluster"]] %>%
 common_hits_without_subject[["cluster"]] <- common_hits_without_subject[["cluster"]] %>%
     sapply(gsub, pattern="cluster_", replacement="") %>%
     factor(levels=1:length(clusters))
-p_hits_no_cluster <- common_hits_without_cluster %>%
+
+plot_dir <- "output/yfv"
+p_hits_no_cluster_2 <- common_hits_without_cluster[cluster_cutoff == 2, ] %>%
     ggplot(aes(x=subject, y=hit_rate, fill=subject)) +
     geom_bar(stat="identity") +
+    ylab("subject") +
     ylim(0, 1) +
-    facet_wrap(vars(timepoint)) 
+    facet_wrap(vars(timepoint)) +
+    theme_minimal_hgrid()
+ggsave(file.path(plot_dir, "hits_by_subject_2.pdf"), width=7, height=2)
+p_hits_no_cluster_10 <- common_hits_without_cluster[cluster_cutoff == 10, ] %>%
+    ggplot(aes(x=subject, y=hit_rate, fill=subject)) +
+    geom_bar(stat="identity") +
+    ylab("subject") +
+    ylim(0, 1) +
+    facet_wrap(vars(timepoint)) +
+    theme_minimal_hgrid()
+ggsave(file.path(plot_dir, "hits_by_subject_10.pdf"), width=7, height=2)
 p_hits_no_subject <- common_hits_without_subject %>%
     ggplot(aes(x=cluster, y=hit_rate)) +
     geom_bar(stat="identity") +
+    xlab("cluster") +
+    ylab("hit rate") +
     ylim(0, 1) +
-    facet_wrap(vars(timepoint)) 
+    facet_wrap(vars(timepoint)) +
+    theme_minimal_hgrid()
+ggsave(file.path(plot_dir, "hits_by_cluster.pdf"), width=7, height=2)
 p_agg_hits_no_subject <- common_hits_without_subject %>%
     ggplot(aes(x=cluster, y=agg_hit_rate)) +
-    geom_point() +
-    geom_line(aes(x=as.numeric(cluster), y=agg_hit_rate)) +
+    geom_bar(stat="identity") +
+    #geom_point() +
+    #geom_line(aes(x=as.numeric(cluster), y=agg_hit_rate)) +
+    xlab("cluster") +
+    ylab("aggregate hit rate") +
     ylim(0, 1) +
-    facet_wrap(vars(timepoint)) 
+    facet_wrap(vars(timepoint)) +
+    theme_minimal_hgrid()
+ggsave(file.path(plot_dir, "agg_hits_by_cluster.pdf"), width=7, height=2)
 p_hits <- common_hits %>%
     ggplot(aes(x=cluster, y=hit_rate)) +
     geom_boxplot(outlier.size=-1) +
@@ -217,6 +262,18 @@ cmv_hits <- matrix(NA, nrow=0, ncol=length(hit_cols)) %>%
     data.table %>%
     setNames(hit_cols)
 
+hit_filename <- "output/hmm/yfv_hits.csv"
+hit_df <- fread(hit_filename)
+hit_df[['timepoint']] <- hit_df[['comparison']] %>%
+    sapply(label_to_timepoint)
+hit_df[['subject']] <- hit_df[['comparison']] %>%
+    sapply(label_to_subject)
+hit_df[['cluster']] <- hit_df[['cluster']] %>% 
+    sapply(function(x) { x %>% strsplit(split="_") %>% unlist %>% last}) %>%
+    as.numeric
+hit_df_top_3 <- hit_df[hit_df[['timepoint']] == "15" & hit_df[["cluster"]] <= 3, ]
+hit_df_top_10 <- hit_df[hit_df[['timepoint']] == "15" & hit_df[["cluster"]] <= 10, ]
+
 occ_cols <- c("v_gene", "cdr3", "tcr", "subject")
 yfv_occ <- matrix(NA, nrow=0, ncol=length(occ_cols)) %>%
     data.table %>%
@@ -225,73 +282,7 @@ cmv_occ <- matrix(NA, nrow=0, ncol=length(occ_cols)) %>%
     data.table %>%
     setNames(occ_cols)
 
-yfv_hit_locs <- which(yfv_df[["tcr"]] %in% cluster_df[["tcr"]])
-yfv_hits <- yfv_df[which(yfv_df[["tcr"]] %in% cluster_df[["tcr"]]), "tcr"]
-yfv_hits[["subject"]] <- yfv_hits[["tcr"]] %>%
-    sapply(function(x) { cluster_df[tcr == x, "subject"] }) %>%
-    unlist
-yfv_hits[["timepoint"]] <- yfv_hits[["tcr"]] %>%
-    sapply(function(x) { cluster_df[tcr == x, "timepoint"] }) %>%
-    unlist
-yfv_hits[["cluster"]] <- yfv_hits[["tcr"]] %>%
-    sapply(function(x) { cluster_df[tcr == x, "timepoint"] }) %>%
-    unlist
+cluster_df[["tcr"]] <- paste(cluster_df[["v_gene"]], cluster_df[["cdr3"]], sep=",")
 
-
-stop()
-#for(i in 1:nrow(yfv_df)) {
-#    print(i)
-#    v_gene <- yfv_df[i, "v_gene"] %>% unlist
-#    cdr3 <- yfv_df[i, "cdr3"] %>% unlist
-#    for(j in 1:nrow(cluster_df)) {
-#        if(v_gene == cluster_df[j, "v_gene"] && cdr3 == cluster_df[j, "cdr3"]) {
-#            yfv_hits <- rbind(
-#                              yfv_hits,
-#                              cluster_df[j, ]
-#                             )
-#        }
-#    }
-#
-    if(T) {
-        for(s in subjects) {
-            subject_df <- subject_dfs[[s]]
-            yfv_occ <- rbind(
-                             yfv_occ,
-                             cbind(
-                                   yfv_df[which(yfv_df[["tcr"]] %in% subject_df[["tcr"]]), ],
-                                   subject=label_to_subject(s)
-                                  )
-                            )
-        }
-    }
-
-for(i in 1:nrow(cmv_df)) {
-    print(i)
-    v_gene <- cmv_df[i, "v_gene"] %>% unlist
-    cdr3 <- cmv_df[i, "cdr3"] %>% unlist
-    for(j in 1:nrow(cluster_df)) {
-        if(v_gene == cluster_df[j, "v_gene"] && cdr3 == cluster_df[j, "cdr3"]) {
-            cmv_hits <- rbind(
-                              cmv_hits,
-                              cluster_df[j, ]
-                             )
-        }
-    }
-    if(FALSE) {
-        for(s in subjects) {
-            subject_df <- subject_dfs[[s]]
-                for(j in 1:nrow(subject_df)) {
-                    if(subject_df[j, "v_gene"] == v_gene && subject_df[j, "cdr3"] == cdr3) {
-                        cmv_occ <- rbind(
-                                         cmv_occ,
-                                         data.table(
-                                                    v_gene=v_gene,
-                                                    cdr3=cdr3,
-                                                    subject=s
-                                                   )
-                                        )
-                    }
-                }
-            }
-    }
-}
+yfv_hits <- cluster_df[tcr %in% yfv_df[['tcr']] & timepoint == "15", ]
+cmv_hits <- cluster_df[tcr %in% cmv_df[['tcr']] & timepoint == "15", ]
