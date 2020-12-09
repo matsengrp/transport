@@ -35,27 +35,23 @@ if(!exists("fg_dat")) {
         unique
 }
 
-if(T) {
-    dist_mats <- {}
-    for(subject in subjects) {
-        dist_mats[[subject]] <- read.csv(
-            file.path(
-                dist_mats_dir,
-                paste0(
-                     subject,
-                     ".tcrs.csv"
-                )
-            ),
-            header=FALSE
-        )
-    }
+dist_mats <- {}
+for(subject in subjects) {
+    dist_mats[[subject]] <- read.csv(
+        file.path(
+            dist_mats_dir,
+            paste0(
+                 subject,
+                 ".tcrs.csv"
+            )
+        ),
+        header=FALSE
+    )
 }
 
-if(T) {
-    mds_dats <- {}
-    for(subject in subjects) {
-        mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
-                                              projection_method=projection_method, 
-                                              k=2)
-    }
+mds_dats <- {}
+for(subject in subjects) {
+    mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
+                                          projection_method=projection_method, 
+                                          k=2)
 }
