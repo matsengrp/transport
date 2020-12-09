@@ -24,7 +24,7 @@ class HMMerManager():
 
     def run_hmmalign(self, alignment_infile, alignment_outfile=None, hmm_filename=None):
         if hmm_filename is None:
-            hmm_filename = self.hmm_filename
+            hmm_filename = "tmp.hmm"
         if alignment_outfile is None:
             alignment_outfile = self.alignment_outfile
 

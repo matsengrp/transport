@@ -10,13 +10,13 @@ from Bio.SeqRecord import SeqRecord
 import numpy as np
 import pandas as pd
 
-from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, TMP_OUTPUT
+from common.params import CSV_OUTPUT_DIRNAME, DIRECTORIES, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 
 class TCRClusterer():
     seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
 
-    def __init__(self, self_distance_matrix, score_dict, radius=DEFAULT_NEIGHBOR_RADIUS, seg_csv_outfile=None, cluster_label='tmp', outdir=DIRECTORIES[TMP_OUTPUT]):
+    def __init__(self, self_distance_matrix, score_dict, seg_csv_outfile=None, cluster_label='tmp', outdir=DIRECTORIES[TMP_OUTPUT]):
         if seg_csv_outfile is None:
             seg_csv_outfile = self.seg_csv_file
 

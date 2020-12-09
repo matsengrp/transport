@@ -25,9 +25,6 @@ class TCRDist():
         output_dir="tmp_output",
     ):
     
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-    
         cmd = '{} -i {} -j {} -d {} --terse'.format(
             self.exe,
             os.path.join(output_dir, f1),

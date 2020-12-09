@@ -20,7 +20,7 @@ with open(os.path.join(DIRECTORIES[JSON_OUTPUT], 'empirical_fg_bg_nbhd_stats.jso
 
 subjects = result.keys()
 sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for subject in subjects}
-sample_size_threshold = 300
+sample_size_threshold = 1
 
 seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
 
@@ -29,7 +29,7 @@ def get_cluster_objects_from_subject(subject):
     info_dict = result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]
     score_dict = {tcr: tcr_info['foreground']['score'] for tcr, tcr_info in info_dict.items()}
 
-    tcr_clusterer = TCRClusterer(subject_distance_matrix, score_dict, species="mouse")
+    tcr_clusterer = TCRClusterer(subject_distance_matrix, score_dict)
     
     df = tcr_clusterer.df
     df['subject'] = subject
@@ -41,6 +41,7 @@ def run_cluster_analysis():
     full_dict = {}
 
     for subject in subjects:
+        print(subject, sample_sizes[subject])
         if sample_sizes[subject] > sample_size_threshold:
             subject_cluster_df, subject_all_radii_dict = get_cluster_objects_from_subject(subject)
             dfs.append(subject_cluster_df)
@@ -66,7 +67,7 @@ def get_profile_from_subject_cluster(subject, cluster_radius):
         SeqIO.write(cluster_records, output_handle, "fasta")
 
     hmmer_manager = HMMerManager()
-    hmmer_manager.run_hmmalign(alignment_infile=cluster_cdr3s_fasta, alignment_outfile=cluster_cdr3s_sto)
+    hmmer_manager.run_hmmalign(alignment_infile=cluster_cdr3s_fasta, alignment_outfile=cluster_cdr3s_sto, hmm_outfile=cluster_cdr3s_hmm)
     hmmer_manager.run_hmmbuild(hmm_file=cluster_cdr3s_hmm, alignment_outfile=cluster_cdr3s_sto)
     return cluster_cdr3s_hmm
 
@@ -85,7 +86,7 @@ def run_motif_analysis(reference_subject, cluster_radius, outfile_prefix):
             with open(subject_all_cdr3s_fasta, "w") as output_handle:
                 SeqIO.write(subject_all_records, output_handle, "fasta")
 
-            subject_hmmsearch_result = HMMerManager().run_hmmsearch(reference_cluster_cdr3s_hmm, subject_all_cdr3s_fasta, subject_hmmsearch_outfile)
+            subject_hmmsearch_result = HMMerManager().run_hmmsearch(reference_cluster_cdr3s_hmm, subject_all_cdr3s, subject_hmmsearch_outfile, sequence_ids=subject_all_cdr3s)
             subject_e_values = [{'cdr3': tcr_info['target_name'], 'e_value': tcr_info['e_value']} for tcr_info in subject_hmmsearch_result]
             subject_e_value_df = pd.DataFrame(subject_e_values)
             subject_e_value_df['subject'] = subject
@@ -101,8 +102,8 @@ if __name__ == "__main__":
 
     run_cluster_analysis()
 
-    e_value_dfs = []
+    #e_value_dfs = []
 
-    run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
+    #run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
 
-    run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
+    #run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
