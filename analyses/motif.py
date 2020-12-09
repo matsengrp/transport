@@ -55,7 +55,7 @@ def run_cluster_analysis():
 
 def get_profile_from_subject_cluster(subject, cluster_radius):
     cluster_objects = get_cluster_objects_from_subject(subject + ".tcrs")
-    cluster = cluster_objects[1][cluster_radius]['tcrs'] # Radius obtained from breakpoint script in R
+    cluster = cluster_objects[1][cluster_radius]['tcrs']
     cluster_cdr3s = extract_cdr3s(cluster) 
 
     cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.fasta")
@@ -101,9 +101,3 @@ if __name__ == "__main__":
         os.makedirs(CSV_OUTPUT_DIRNAME)
 
     run_cluster_analysis()
-
-    #e_value_dfs = []
-
-    #run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R
-
-    #run_motif_analysis(reference_subject="DN_12_B", cluster_radius=70.5, outfile_prefix="ida") # Radius obtained from breakpoint script in R

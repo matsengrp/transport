@@ -47,4 +47,3 @@ for comparison in comparisons:
         hit_df = hit_df.append({'antigen': 'yfv', 'comparison': comparison, 'cluster': cluster, 'hits': yfv_hit_count}, ignore_index=True)
 
 hit_df.to_csv('output/hmm/yfv_hits.csv', index=False)
-

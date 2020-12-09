@@ -64,5 +64,3 @@ if __name__ == "__main__":
         cluster_df = pd.DataFrame(clusterer.result).transpose()
         cluster_df['tcr'] = cluster_df.index
         cluster_df['motif'] = "N/A"
-
-    import pdb; pdb.set_trace()

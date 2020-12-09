@@ -37,15 +37,3 @@ write_full_replicate_dataset(cd4_file, "CD4")
 multi_clusterer = TCRMultiClusterer(file_1=cd4_file, file_2=dn_file, species="mouse", outdir=os.path.join(DIRECTORIES[HMM_OUTPUT], "cd4_dn"))
 
 pd.DataFrame(multi_clusterer.result).transpose().to_csv(os.path.join(DIRECTORIES[TMP_OUTPUT], 'multiple_clusters.csv'))
-
-#np.savetxt(
-#    os.path.join(
-#        DIRECTORIES["dist_matrices"],
-#        "full_dn.csv",
-#    ),
-#    dn_self_dist_mat,
-#    delimiter=",",
-#    fmt="%i"
-#)
-
-
