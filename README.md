@@ -13,6 +13,9 @@ conda install -y matplotlib numpy pandas seaborn
 conda install -y -c conda-forge pot
 ```
 
+There may be newer packages that have not been added to the commands above.
+Feel free to update the instructions here if you come across and resolve any package discrepancies, or let Branden know.
+
 ## Usage
 ### In a nutshell
 The main code for the transport package lies in the `python` directory, which contains various modules.
