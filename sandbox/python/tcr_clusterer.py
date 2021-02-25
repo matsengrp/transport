@@ -20,6 +20,9 @@ class TCRClusterer():
         if seg_csv_outfile is None:
             seg_csv_outfile = self.seg_csv_file
 
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+
         self.unique_tcrs = list(dict.fromkeys(score_dict.keys()))
         self.scores = list(score_dict.values())
 

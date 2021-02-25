@@ -48,6 +48,7 @@ class TCRMultiClusterer():
             for tcr in current_clusterer.cluster_dict['tcrs']:
                 result[tcr]['cluster'] = cluster
             hmmer_manager = HMMerManager()
+            print(cluster_outdir)
             hmmer_manager.build_hmm_from_sequences(
                 [s.split(',')[1] for s in current_clusterer.cluster_dict['tcrs']],
                 outdir=cluster_outdir
