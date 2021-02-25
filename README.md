@@ -1,20 +1,24 @@
 # Comparing TCR repertoires via optimal transport
 
 ## Installation
-We recommend using [conda](https://docs.conda.io/en/latest/) for installation.
-It should be possible to get things running using other package managers like pip via analogous commands minus the conda-specific environment setup, but we haven't tested this.
+We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. 
 
-Running the following commands will set up the conda environment with the necessary packages:
+python environment
+
 ```
 conda update -y conda
 conda create -n "transport" python=3
-source activate transport
+conda activate transport
 conda install -y matplotlib numpy pandas seaborn
 conda install -y -c conda-forge pot
+
 ```
 
-There may be newer packages that have not been added to the commands above.
-Feel free to update the instructions here if you come across and resolve any package discrepancies, or let Branden know.
+Other Requirements
+
+```
+
+```
 
 ## Usage
 ### In a nutshell

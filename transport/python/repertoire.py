@@ -2,7 +2,7 @@ from collections import Counter
 import os
 import re
 
-from common.params import DIRECTORIES, TMP_OUTPUT
+from common.params import DIRECTORIES, TMP_OUTPUT, TCRDISTS_EXE, SPECIES_DB
 from python.tcr_dist import TCRDist
 from python.utils import get_df_from_file, write_deduplicated_file
 
@@ -32,8 +32,8 @@ class Repertoire():
         if compute_distance_matrix:
             if species is None:
                 raise Exception("species must be supplied if compute_distance_matrix is True")
-
-            self.distance_matrix = TCRDist(species=species).get_raw_distance_matrix(self.deduplicated_filename, self.deduplicated_filename)
+            db = SPECIES_DB[species]
+            self.distance_matrix = TCRDist(species_db=db, tcrdists_exe=TCRDISTS_EXE).get_raw_distance_matrix(self.deduplicated_filename, self.deduplicated_filename)
 
     def get_mass_distribution(self, tcr_counter):
         if self.distribution_type == "inverse_to_v_gene":

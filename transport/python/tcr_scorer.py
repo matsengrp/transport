@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 import ot
 
-from common.params import DEFAULT_LAMBDA, DEFAULT_NEIGHBOR_RADIUS, DMAX
+from common.params import DEFAULT_LAMBDA, DEFAULT_NEIGHBOR_RADIUS, DMAX, SPECIES_DB, TCRDISTS_EXE
 from python.repertoire import Repertoire
 from python.tcr_dist import TCRDist
 
@@ -18,7 +18,8 @@ class TCRScorer():
         self.repertoire_1 = Repertoire(self.file_1, self.distribution_type)
         self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True, species=species)
     
-        self.dist_mat = TCRDist(species=species).get_raw_distance_matrix(
+        db = SPECIES_DB[species]
+        self.dist_mat = TCRDist(tcrdists_exe=TCRDISTS_EXE, species_db=db).get_raw_distance_matrix(
             self.repertoire_1.deduplicated_filename,
             self.repertoire_2.deduplicated_filename,
             verbose=False

@@ -4,16 +4,16 @@ import numpy as np
 import pandas as pd
 
 class TCRDist():
-    exe = 'pot_data/tcrdists'
 
-    def __init__(self, species):
-        self.species = species
-        if self.species == "mouse":
-            self.db = "pot_data/fake_pubtcrs_db_mouse"
-        elif self.species == "human":
-            self.db = "pot_data/db"
-        else:
-            raise Exception("Unsupported species (can only be mouse or human)")
+    def __init__(self, species_db, tcrdists_exe):
+        self.db = species_db
+        self.exe = tcrdists_exe
+        #if self.species == "mouse":
+        #    self.db = "pot_data/fake_pubtcrs_db_mouse"
+        #elif self.species == "human":
+        #    self.db = "pot_data/db"
+        #else:
+        #    raise Exception("Unsupported species (can only be mouse or human)")
 
     def get_raw_distance_matrix( 
         self,
