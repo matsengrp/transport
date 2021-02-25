@@ -1,24 +1,20 @@
 # Comparing TCR repertoires via optimal transport
 
 ## Installation
-We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. 
-
-python environment
+We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. You may use the spec-file.txt to create a mirror environment that currently works
 
 ```
-conda update -y conda
-conda create -n "transport" python=3
-conda activate transport
-conda install -y matplotlib numpy pandas seaborn
-conda install -y -c conda-forge pot
-
+conda create --name transport --file spec-file.txt
 ```
 
-Other Requirements
+Other Requirements - running the code requires a few other dependencies not avaiable from python. To load the correct modules on the fh cluster, use the following commands
 
 ```
-
+module load R/4.0.3-foss-2020b
+module load RepeatMasker/4.0.8-foss-2018b-Perl-5.28.0-HMMER
+module load MAFFT/7.453-GCC-8.3.0-with-extensions
 ```
+
 
 ## Usage
 ### In a nutshell
