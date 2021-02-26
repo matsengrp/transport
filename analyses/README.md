@@ -21,7 +21,7 @@ This matrix mainly used for visualizations, e.g. examining MDS plots.
 
 
 ### motif.py
-This script operates on the loneliness scores obtained in `replicates.py`, computing the mean annulus loneliness values used to estimate the breakpoint radius of a clusters.
+This script operates on the loneliness scores obtained in `replicates.py`, computing the mean annulus loneliness values used to estimate the breakpoint radius of a cluster.
 The result is a csv file (found at `output/csv/motif.csv`) containing mean annulus loneliness values (called `annulus_enrichment`s in the file) for each radius for each DN subject.
 
 
@@ -37,7 +37,7 @@ The results can be found at `output/json/empirical_fg_bg_nbhd_stats.json` and `o
 
 
 ### yfv.py
-This script analyses the YFV data, computing the top lonely clusters for four different timepoints, 0d vs -7d, 0d vs 0d, 0d vs 15d, and 0d vs 45d, for each of the six subjects, P1, P2, S1, S2, Q1, and Q2.
+This script analyzes the YFV data, computing the top lonely clusters for four different timepoints, 0d vs -7d, 0d vs 0d, 0d vs 15d, and 0d vs 45d, for each of the six subjects, P1, P2, S1, S2, Q1, and Q2.
 The resultant directories can be found in `output/hmm`. 
 
 
