@@ -33,7 +33,7 @@ class Repertoire():
             if species is None:
                 raise Exception("species must be supplied if compute_distance_matrix is True")
             db = SPECIES_DB[species]
-            self.distance_matrix = TCRDist(species_db=db, tcrdists_exe=TCRDISTS_EXE).get_raw_distance_matrix(self.deduplicated_filename, self.deduplicated_filename)
+            self.distance_matrix = TCRDist(species=species, species_db=db, tcrdists_exe=TCRDISTS_EXE).get_raw_distance_matrix(self.deduplicated_filename, self.deduplicated_filename)
 
     def get_mass_distribution(self, tcr_counter):
         if self.distribution_type == "inverse_to_v_gene":

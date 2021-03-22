@@ -19,7 +19,7 @@ class TCRScorer():
         self.repertoire_2 = Repertoire(self.file_2, self.distribution_type, compute_distance_matrix=True, species=species)
     
         db = SPECIES_DB[species]
-        self.dist_mat = TCRDist(tcrdists_exe=TCRDISTS_EXE, species_db=db).get_raw_distance_matrix(
+        self.dist_mat = TCRDist(tcrdists_exe=TCRDISTS_EXE, species=species, species_db=db).get_raw_distance_matrix(
             self.repertoire_1.deduplicated_filename,
             self.repertoire_2.deduplicated_filename,
             verbose=False

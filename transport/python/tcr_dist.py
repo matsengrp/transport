@@ -5,9 +5,10 @@ import pandas as pd
 
 class TCRDist():
 
-    def __init__(self, species_db, tcrdists_exe):
+    def __init__(self, species, species_db, tcrdists_exe):
         self.db = species_db
         self.exe = tcrdists_exe
+        self.species = species
         #if self.species == "mouse":
         #    self.db = "pot_data/fake_pubtcrs_db_mouse"
         #elif self.species == "human":
@@ -26,19 +27,25 @@ class TCRDist():
     ):
     
         cmd = '{} -i {} -j {} -d {} --terse'.format(
+        # cmd = '{} -i {} -j {} -d {} -g {}'.format(
             self.exe,
             os.path.join(output_dir, f1),
             os.path.join(output_dir, f2),
             self.db,
+            # self.species
         )
         if verbose:
             print(cmd)
         all_dists = []
         for line in os.popen(cmd):
+            
             try:
                 all_dists.append( [float(x) for x in line.split() ] )
             except ValueError:
                 print(line)
+        print(all_dists)
+        sys.exit()
+
         N1 = len(all_dists)
         N2 = len(all_dists[0])
         for dists in all_dists:
