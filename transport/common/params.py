@@ -1,5 +1,8 @@
 import os
 
+TCRDISTS_EXE = "../../tcrdists"
+#TCRDISTS_EXE = "../../repdist/bin/repdist"
+
 CSV_OUTPUT = "csv"
 DEFAULT_LAMBDA = 0.01
 DEFAULT_NEIGHBOR_RADIUS = 48.5
@@ -31,5 +34,11 @@ DIRECTORIES = {
     HMM_OUTPUT: HMM_OUTPUT_DIRNAME,
 }
 
-IEL_DATA_DIR = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
+SPECIES_DB = {
+    "mouse" : "../../pot_data/fake_pubtcrs_db_mouse", 
+    "human" : "../../pot_data/db", 
+}
+
+#IEL_DATA_DIR = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
+IEL_DATA_DIR = '../../pot_data/iels_tcrs_by_mouse/'
 
