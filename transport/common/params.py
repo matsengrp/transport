@@ -1,6 +1,6 @@
 import os
 
-TCRDISTS_EXE = "../../tcrdists"
+TCRDISTS_EXE = "../../pubtcrs/bin/tcrdists"
 #TCRDISTS_EXE = "../../repdist/bin/repdist"
 
 CSV_OUTPUT = "csv"

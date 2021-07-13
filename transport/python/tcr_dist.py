@@ -43,8 +43,8 @@ class TCRDist():
                 all_dists.append( [float(x) for x in line.split() ] )
             except ValueError:
                 print(line)
-        print(all_dists)
-        sys.exit()
+        #print(all_dists)
+        #sys.exit()
 
         N1 = len(all_dists)
         N2 = len(all_dists[0])
