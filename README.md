@@ -1,23 +1,53 @@
 # Comparing TCR repertoires via optimal transport
 
-## Installation
-We recommend using [conda](https://docs.conda.io/en/latest/) for installation.
-It should be possible to get things running using other package managers like pip via analogous commands minus the conda-specific environment setup, but we haven't tested this.
+## Environment and Dependencies
 
-Running the following commands will set up the conda environment with the necessary packages:
+Clone the repository and it's submodules
+
+using ssh keys
+```bash
+git clone --recurse-submodules git@github.com:matsengrp/transport.git
 ```
-conda update -y conda
-conda create -n "transport" python=3
-source activate transport
-conda install -y matplotlib numpy pandas seaborn
-conda install -y -c conda-forge pot
+using https
+```bash
+git clone --recurse-submodules https://github.com/matsengrp/transport.git
 ```
 
-There may be newer packages that have not been added to the commands above.
-Feel free to update the instructions here if you come across and resolve any package discrepancies, or let Branden know.
+First, you'll want to build the TCRDist executable
+```bash
+./build-pudtcrs.sh
+```
 
-## Usage
-### In a nutshell
+Next, set up a proper python environment.
+We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. You may use the spec-file.txt to create a mirror environment that currently works
+
+```
+conda create --name transport --file spec-file.txt
+```
+
+Other Requirements - running the code requires a few other dependencies called upon by our scripts
+
+1. R >= 4.0.3
+2. HMMER >= 3.2.1 #http://hmmer.org/
+3. mafft v >= 7.453
+
+on the Fred Hutch `rhino` servers, I load these modules like so:
+```
+module load R/4.0.3-foss-2020b
+module load RepeatMasker/4.0.8-foss-2018b-Perl-5.28.0-HMMER
+module load MAFFT/7.453-GCC-8.3.0-with-extensions
+```
+
+
+## Running manuscript analysis
+
+Next, we'll walk you through running the three primary manuscript analysis and their respective input/outputs 
+
+### IEL's data
+
+.... TODO
+
+### Code Description
 The main code for the transport package lies in the `python` directory, which contains various modules.
 The core of the package lies in the `TCRScorer` module, which takes two files `file_1` and `file_2` of TCR sequences as input, and computes the loneliness scores (called "enrichments" in this repo) of all TCRs in the repertoire corresponding to `file_2`.
 This is then called by `TCRClusterer` to compute the lonelinest cluster of TCRs, which in turn is called by `TCRMultiClusterer` to compute the top _k_ clusters for some specified _k_.
