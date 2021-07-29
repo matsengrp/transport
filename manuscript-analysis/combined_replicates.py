@@ -6,7 +6,7 @@ import sys
 
 import pandas as pd
 
-sys.path.append(os.getcwd())
+#sys.path.append(os.getcwd())
 from common.params import CSV_OUTPUT_DIRNAME, DIRECTORIES, HMM_OUTPUT, IEL_DATA_DIR, JSON_OUTPUT, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.tcr_clusterer import TCRClusterer

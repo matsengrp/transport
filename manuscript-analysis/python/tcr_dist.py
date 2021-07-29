@@ -5,9 +5,8 @@ import pandas as pd
 
 class TCRDist():
 
-    def __init__(self, species, species_db, tcrdists_exe):
+    def __init__(self, species_db):
         self.db = species_db
-        self.exe = tcrdists_exe
         self.species = species
         #if self.species == "mouse":
         #    self.db = "pot_data/fake_pubtcrs_db_mouse"
@@ -28,7 +27,7 @@ class TCRDist():
     
         cmd = '{} -i {} -j {} -d {} --terse'.format(
         # cmd = '{} -i {} -j {} -d {} -g {}'.format(
-            self.exe,
+            'tcrdist',
             os.path.join(output_dir, f1),
             os.path.join(output_dir, f2),
             self.db,
