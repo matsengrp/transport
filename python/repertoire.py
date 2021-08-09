@@ -2,7 +2,6 @@ from collections import Counter
 import os
 import re
 
-from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_dist import TCRDist
 from python.utils import get_df_from_file, write_deduplicated_file
 

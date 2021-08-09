@@ -1,13 +1,3 @@
-## this script compares neighbor-summed per-tcr-efforts (ie row sums of the effort matrix) within a
-## set of 'foreground' repertoires and between the foreground repertoires and a set of background 
-## repertoires. Here the foreground repertoires are the DN beta repertoires across the mice and the
-## background reps are the CD4s (see fg_reptag and bg_reptag below)
-##
-## The idea is that each foreground tcr will have a distribution of efforts in the comparisons
-## to the other foreground repertoires and also a distribution of efforts in the comparisons to
-## the background repertoires. For a wonky tcr that's an outlier, both those distributions will
-## be large. For a tcr that has more neighbors in the foreground repertoires than in the background
-## repertoires, the two distributions will be different and we can attach a significance to that.
 
 from collections import defaultdict
 import json
@@ -21,8 +11,9 @@ from scipy.stats import mannwhitneyu, ttest_ind
 import sys
 
 sys.path.append(os.getcwd())
-from common.params import DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES
+
 from python.tcr_scorer import TCRScorer
+from config import CONFIG
 
 def get_enrichments(scorer, radius):
     scorer.compute_enrichments(neighbor_radius=radius)
@@ -31,14 +22,8 @@ def get_enrichments(scorer, radius):
 def get_neighbor_counts(scorer):
     return list(scorer.neighbor_counts.values())
 
-# on rhino1:
-seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
+seq_data_dir = CONFIG["IEL_DATA_DIR"]
 
-for _, d in DIRECTORIES.items():
-    if not os.path.exists(d):
-        os.makedirs(d)
-
-## fg = foreground, bg = background
 fg_reptag = 'CD4'
 bg_reptag = 'DN'
 chain = 'B'
@@ -46,14 +31,14 @@ chain = 'B'
 fg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, fg_reptag, chain)))
 bg_repfiles = sorted(glob('{}{}_*_{}.tcrs'.format(seq_data_dir, bg_reptag, chain)))
 
-neighbor_cutoff_radii = [i + 8.5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
+cd4_file = os.path.join(seq_data_dir, "CD4_17_B.tcrs")
 
-file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
+neighbor_cutoff_radii = [i + 8.5 for i in range(0, 100, 5)] # distance at which two single-chain tcrs are considered nbrs
 
 scores_by_cutoff_dict= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 p_val_dict = defaultdict(dict)
-for bg_repfile in bg_repfiles:
+for i, bg_repfile in enumerate(bg_repfiles):
     obs_scorer = TCRScorer(file_1=cd4_file, file_2=bg_repfile, species="mouse")
     obs_scores = obs_scorer.enrichment_dict.values()
 
@@ -64,8 +49,8 @@ for bg_repfile in bg_repfiles:
     fg_scorers = [TCRScorer(x, bg_repfile, species="mouse") for x in fg_repfiles]
     bg_scorers = [TCRScorer(x, bg_repfile, species="mouse") for x in bg_repfiles if x != bg_repfile]
 
-    fg_enrichments = [get_enrichments(fg_scorer, DEFAULT_NEIGHBOR_RADIUS) for fg_scorer in fg_scorers]
-    bg_enrichments = [get_enrichments(bg_scorer, DEFAULT_NEIGHBOR_RADIUS) for bg_scorer in bg_scorers]
+    fg_enrichments = [get_enrichments(fg_scorer, CONFIG["DEFAULT_NEIGHBOR_RADIUS"]) for fg_scorer in fg_scorers]
+    bg_enrichments = [get_enrichments(bg_scorer, CONFIG["DEFAULT_NEIGHBOR_RADIUS"]) for bg_scorer in bg_scorers]
 
     T_fg_enrichments = np.array( fg_enrichments ).transpose()
     T_bg_enrichments = np.array( bg_enrichments ).transpose()
@@ -86,7 +71,7 @@ for bg_repfile in bg_repfiles:
     subject = ntpath.basename(bg_repfile)
     np.savetxt(
         os.path.join(
-            DIRECTORIES["dist_matrices"],
+            CONFIG["DIST_MATRICES_OUTPUT"],
             subject + ".csv", 
         ),
         self_distance_matrix,
@@ -97,7 +82,7 @@ for bg_repfile in bg_repfiles:
     z_score_dict[subject] = {tcr: {"foreground": fg_z_score, "background": bg_z_score} for tcr, fg_z_score, bg_z_score in zip(unique_tcrs, fg_z_scores, bg_z_scores)}
     
     result = {"foreground": {"means": T_fg_means.tolist(), "std_devs": T_fg_stddevs.tolist()}, "background": {"means": T_bg_means.tolist(), "std_devs": T_bg_stddevs.tolist()}}
-    with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_stats.json"), "w") as fp:
+    with open(os.path.join(CONFIG["JSON_OUTPUT"], "empirical_fg_bg_stats.json"), "w") as fp:
         json.dump(result, fp)
 
     for ii in range(N1):
@@ -135,8 +120,8 @@ for bg_repfile in bg_repfiles:
 
     scores_by_cutoff_dict[subject] = cutoff_means
 
-with open(os.path.join(DIRECTORIES["json_output"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
+with open(os.path.join(CONFIG["JSON_OUTPUT"], "empirical_fg_bg_nbhd_stats.json"), "w") as fp:
     json.dump(scores_by_cutoff_dict, fp)
 
-with open(os.path.join(DIRECTORIES["json_output"], "replicate_z_scores.json"), "w") as fp:
+with open(os.path.join(CONFIG["JSON_OUTPUT"], "replicate_z_scores.json"), "w") as fp:
     json.dump(z_score_dict, fp)

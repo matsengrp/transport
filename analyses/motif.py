@@ -10,23 +10,26 @@ import pandas as pd
 
 sys.path.append(os.getcwd())
 
-from common.params import CSV_OUTPUT_DIRNAME, DEFAULT_NEIGHBOR_RADIUS, DIRECTORIES, DIST_MATRICES, JSON_OUTPUT, TMP_OUTPUT
+from config import CONFIG
 from python.hmmer_manager import HMMerManager
 from python.tcr_clusterer import TCRClusterer
 from python.utils import extract_cdr3s
 
-with open(os.path.join(DIRECTORIES[JSON_OUTPUT], 'empirical_fg_bg_nbhd_stats.json')) as f:
+with open(os.path.join(CONFIG["JSON_OUTPUT"], 'empirical_fg_bg_nbhd_stats.json')) as f:
     result = json.load(f)
 
 subjects = result.keys()
-sample_sizes = {subject: len(result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]) for subject in subjects}
+
+sample_sizes = {
+    subject: len(result[subject][str(CONFIG["DEFAULT_NEIGHBOR_RADIUS"])]) 
+    for subject in subjects
+}
+
 sample_size_threshold = 1
 
-seq_data_dir = '/loc/no-backup/pbradley/share/pot_data/iels_tcrs_by_mouse/'
-
 def get_cluster_objects_from_subject(subject):
-    subject_distance_matrix = np.loadtxt(os.path.join(DIRECTORIES[DIST_MATRICES], subject + '.csv'), dtype='i', delimiter=',')
-    info_dict = result[subject][str(DEFAULT_NEIGHBOR_RADIUS)]
+    subject_distance_matrix = np.loadtxt(os.path.join(CONFIG["DIST_MATRICES_OUTPUT"], subject + '.csv'), dtype='i', delimiter=',')
+    info_dict = result[subject][str(CONFIG["DEFAULT_NEIGHBOR_RADIUS"])]
     score_dict = {tcr: tcr_info['foreground']['score'] for tcr, tcr_info in info_dict.items()}
 
     tcr_clusterer = TCRClusterer(subject_distance_matrix, score_dict)
@@ -48,9 +51,9 @@ def run_cluster_analysis():
             full_dict[subject] = subject_all_radii_dict
 
     full_df = pd.concat(dfs)
-    full_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "motif.csv"), index=False)
+    full_df.to_csv(os.path.join(CONFIG["CSV_OUTPUT"], "motif.csv"), index=False)
 
-    with open(os.path.join(DIRECTORIES[JSON_OUTPUT], "motif.json"), "w") as fp:
+    with open(os.path.join(CONFIG["JSON_OUTPUT"], "motif.json"), "w") as fp:
         json.dump(full_dict, fp)
 
 def get_profile_from_subject_cluster(subject, cluster_radius):
@@ -58,9 +61,9 @@ def get_profile_from_subject_cluster(subject, cluster_radius):
     cluster = cluster_objects[1][cluster_radius]['tcrs']
     cluster_cdr3s = extract_cdr3s(cluster) 
 
-    cluster_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.fasta")
-    cluster_cdr3s_sto = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.sto")
-    cluster_cdr3s_hmm = os.path.join(DIRECTORIES[TMP_OUTPUT], subject + "_cluster_cdr3s.hmm")
+    cluster_cdr3s_fasta = os.path.join(CONFIG["TMP_OUTPUT"], subject + "_cluster_cdr3s.fasta")
+    cluster_cdr3s_sto = os.path.join(CONFIG["TMP_OUTPUT"], subject + "_cluster_cdr3s.sto")
+    cluster_cdr3s_hmm = os.path.join(CONFIG["TMP_OUTPUT"], subject + "_cluster_cdr3s.hmm")
 
     cluster_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in cluster_cdr3s]
     with open(cluster_cdr3s_fasta, "w") as output_handle:
@@ -77,11 +80,17 @@ def run_motif_analysis(reference_subject, cluster_radius, outfile_prefix):
     for subject in subjects:
         if sample_sizes[subject] > sample_size_threshold:
 
-            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
-            subject_hmmsearch_outfile = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_hmmsearch.out".format(subject))
-            subject_df = pd.read_csv(os.path.join(seq_data_dir, subject), header=None, names=['v_gene', 'cdr3'])
+            subject_all_cdr3s_fasta = os.path.join(CONFIG["TMP_OUTPUT"], "{}_all_cdr3s.fasta".format(subject))
+            subject_hmmsearch_outfile = os.path.join(
+                CONFIG["TMP_OUTPUT"], 
+                "{}_hmmsearch.out".format(subject)
+            )
+            subject_df = pd.read_csv(
+                os.path.join(CONFIG["IEL_DATA_DIR"], subject), 
+                header=None, names=['v_gene', 'cdr3']
+            )
             subject_all_cdr3s = subject_df['cdr3']
-            subject_all_cdr3s_fasta = os.path.join(DIRECTORIES[TMP_OUTPUT], "{}_all_cdr3s.fasta".format(subject))
+            subject_all_cdr3s_fasta = os.path.join(CONFIG["TMP_OUTPUT"], "{}_all_cdr3s.fasta".format(subject))
             subject_all_records = [SeqRecord(Seq(cdr3), id=cdr3) for cdr3 in subject_all_cdr3s]
             with open(subject_all_cdr3s_fasta, "w") as output_handle:
                 SeqIO.write(subject_all_records, output_handle, "fasta")
@@ -94,10 +103,10 @@ def run_motif_analysis(reference_subject, cluster_radius, outfile_prefix):
     
     e_value_df = pd.concat(e_value_dfs)
     
-    e_value_df.to_csv(os.path.join(CSV_OUTPUT_DIRNAME, "{}_e_value.csv".format(outfile_prefix)), index=False)
+    e_value_df.to_csv(os.path.join(CONFIG["CSV_OUTPUT"], "{}_e_value.csv".format(outfile_prefix)), index=False)
 
 if __name__ == "__main__":
-    if not os.path.exists(CSV_OUTPUT_DIRNAME):
-        os.makedirs(CSV_OUTPUT_DIRNAME)
+    if not os.path.exists(CONFIG["CSV_OUTPUT"]):
+        os.makedirs(CONFIG["CSV_OUTPUT"])
 
     run_cluster_analysis()

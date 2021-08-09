@@ -4,10 +4,8 @@ import pandas as pd
 import os
 import ot
 
-from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_dist import TCRDist
-
-Dmax = 200 # constant across comparisons
+from config import CONFIG
 
 def sort_dict(d: dict):
     return sorted(d.items(), key=operator.itemgetter(1), reverse=True)
@@ -59,7 +57,7 @@ def collapse_duplicates(v):
             starting_indices.append(i)
     return starting_indices
 
-def write_deduplicated_file(df, filename, output_dir=DIRECTORIES[TMP_OUTPUT]):
+def write_deduplicated_file(df, filename, output_dir=CONFIG["TMP_OUTPUT"]):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

@@ -1,10 +1,11 @@
 library(rjson)
+library(dplyr)
+library(reshape2)
 
 source("R/plot_utils.R")
 
-json_dir = "output/json"
-dist_mats_dir = "output/dist_matrices"
-
+json_dir = CONFIG$JSON_OUTPUT
+dist_mats_dir = CONFIG$DIST_MATRICES_OUTPUT
 projection_method <- "MDS"
 dir.create(projection_method)
 

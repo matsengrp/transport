@@ -3,12 +3,12 @@ from collections import defaultdict
 import numpy as np
 import ot
 
-from common.params import DEFAULT_LAMBDA, DEFAULT_NEIGHBOR_RADIUS, DMAX
 from python.repertoire import Repertoire
 from python.tcr_dist import TCRDist
+from config import CONFIG
 
 class TCRScorer():
-    def __init__(self, file_1, file_2, species, distribution_type="uniform", lambd=DEFAULT_LAMBDA, neighbor_radius=DEFAULT_NEIGHBOR_RADIUS):
+    def __init__(self, file_1, file_2, species, distribution_type="uniform", lambd=CONFIG["DEFAULT_LAMBDA"], neighbor_radius=CONFIG["DEFAULT_NEIGHBOR_RADIUS"]):
         self.file_1 = file_1
         self.file_2 = file_2
         self.distribution_type = distribution_type
@@ -22,7 +22,7 @@ class TCRScorer():
             self.repertoire_1.deduplicated_filename,
             self.repertoire_2.deduplicated_filename,
             verbose=False
-        )/DMAX
+        )/CONFIG["DMAX"]
 
         self.compute_efforts()
         self.compute_enrichments()
@@ -31,12 +31,12 @@ class TCRScorer():
         self.ot_mat = ot.sinkhorn(self.repertoire_1.mass, self.repertoire_2.mass, self.dist_mat, self.lambd)
         self.effort_matrix = np.multiply(self.dist_mat, self.ot_mat)
         N2 = self.repertoire_2.total_N
-        self.efforts = DMAX*N2*self.effort_matrix.sum(axis=0)
+        self.efforts = CONFIG["DMAX"]*N2*self.effort_matrix.sum(axis=0)
         assert len(self.efforts) == self.repertoire_2.unique_N
     
         self.effort_dict = {tcr: effort for tcr, effort in zip(self.repertoire_2.unique_tcrs, self.efforts)}
 
-    def compute_enrichments(self, neighbor_radius=DEFAULT_NEIGHBOR_RADIUS):
+    def compute_enrichments(self, neighbor_radius=CONFIG["DEFAULT_NEIGHBOR_RADIUS"]):
         self.enrichment_dict = defaultdict()
         self.neighbor_counts = defaultdict()
         for i, tcr in zip(range(self.repertoire_2.unique_N), self.repertoire_2.unique_tcrs):

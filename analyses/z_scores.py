@@ -9,13 +9,13 @@ import pandas as pd
 
 sys.path.append('.')
 
-from common.params import DIRECTORIES, DMAX, JSON_OUTPUT, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.randomization_test import RandomizationTest
 from python.tcr_dist import TCRDist
 from python.tcr_multi_clusterer import TCRMultiClusterer
 from python.tcr_scorer import TCRScorer
 from python.utils import extract_cdr3s, get_df_from_file
+from config import CONFIG
 
 def get_filename_from_subject(subject, file_dir):
     filename = file_dir + subject + '_B.tcrs'
@@ -23,7 +23,8 @@ def get_filename_from_subject(subject, file_dir):
 
 
 if __name__ == "__main__":
-    file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
+    file_dir = CONFIG["IEL_DATA_DIR"]
+    
 
     cd4_subject = 'CD4_17'
     dn_subject = 'DN_15'
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         randomization_test = RandomizationTest(cd4_df, dn_df, obs_scores, species="mouse", trial_count=100)
         result = randomization_test.enrichment_dict
 
-        results_dir = os.path.join(DIRECTORIES[JSON_OUTPUT], cd4_subject)
+        results_dir = os.path.join(CONFIG["JSON_OUTPUT"], cd4_subject)
         if not os.path.exists(results_dir):
             os.makedirs(results_dir)
 
@@ -64,3 +65,4 @@ if __name__ == "__main__":
         cluster_df = pd.DataFrame(clusterer.result).transpose()
         cluster_df['tcr'] = cluster_df.index
         cluster_df['motif'] = "N/A"
+        cluster_df.to_csv(os.path.join(results_dir, "cluster_df.csv"))

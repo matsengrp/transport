@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(os.getcwd())
+from config import CONFIG
 from python.tcr_dist import TCRDist
 
-tcr_dir = "data/R"
+tcr_dir = CONFIG["YFV_DATA_DIR"]
 yfv_tcr_file = os.path.join(tcr_dir, "yfv_tcrs.csv")
 cmv_tcr_file = os.path.join(tcr_dir, "cmv_tcrs.csv")
 

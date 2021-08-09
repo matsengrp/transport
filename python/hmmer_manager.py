@@ -8,14 +8,7 @@ from Bio.SeqRecord import SeqRecord
 from PIL import Image
 import requests
 
-from common.params import (
-    DIRECTORIES,
-    TMP_OUTPUT,
-    TRB_HUMAN_CDR3_HMM,
-    TRB_HUMAN_CDR3_STO,
-    TRB_MOUSE_CDR3_HMM,
-    TRB_MOUSE_CDR3_STO,
-)
+from config import CONFIG
 
 class HMMerManager():
 
@@ -49,7 +42,7 @@ class HMMerManager():
 
     def run_hmmsearch(self, hmm_filename, query_sequences, outfile, sequence_ids):
         seq_records = [SeqRecord(Seq(sequence), id=seq_id) for sequence, seq_id in zip(query_sequences, sequence_ids)]
-        query_filename = os.path.join(DIRECTORIES[TMP_OUTPUT], "hmmsearch_query.fasta")
+        query_filename = os.path.join(CONFIG["TMP_OUTPUT"], "hmmsearch_query.fasta")
         with open(query_filename, "w") as output_handle:
             SeqIO.write(seq_records, output_handle, "fasta")
 
@@ -88,7 +81,7 @@ class HMMerManager():
     def build_hmm_from_sequences(
             self,
             sequence_list,
-            outdir=DIRECTORIES[TMP_OUTPUT],
+            outdir=CONFIG["TMP_OUTPUT"],
         ):
         if not os.path.exists(outdir):
             os.makedirs(outdir)

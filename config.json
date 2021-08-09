@@ -1,0 +1,33 @@
+{
+    "DEFAULT_LAMBDA": 0.01,
+    "DEFAULT_NEIGHBOR_RADIUS": 48.5,
+    "DMAX": 200,
+
+    "OUTPUT" : "output", 
+    "HMM_OUTPUT": "output/hmm",
+    "HMM_CD4_DN_OUTPUT" : "output/hmm/cd4_dn",
+    "JSON_OUTPUT": "output/json",
+    "CSV_OUTPUT": "output/csv",
+    "ZSCORE_OUTPUT" : "output/z_score",
+    "DIST_MATRICES_OUTPUT": "output/dist_matrices",
+    "MDS_OUTPUT" : "output/mds",
+    "TMP_OUTPUT": "tmp_output",
+    "IEL_CLUSTER_OUTPUT" : "output/cluster_iels",
+    "YFV_OUTPUT" : "output/yellow_fever",
+    
+    "IEL_DATA_DIR": "data/iels_tcrs_by_mouse/",
+    "YFV_DATA_DIR" : "data/yellow_fever/",
+    "YFV_DATA_DIR_TOP1000" : "data/yellow_fever/top1000/",
+
+    "TCRDIST_EXE" : "pubtcrs/bin/tcrdists",
+    
+    "TRB_HUMAN_CDR3_HMM": "data/hmms/trb_human_cdr3.hmm",
+    "TRB_HUMAN_CDR3_STO": "data/hmms/trb_human_cdr3.sto",
+    "TRB_MOUSE_HMM": "data/hmms/TRB_mouse.hmm",
+    "TRB_MOUSE_CDR3_HMM": "data/hmms/trb_mouse_cdr3.hmm",
+    "TRB_MOUSE_CDR3_STO": "data/hmms/trb_mouse_cdr3.sto",
+    
+    "MOUSE_DB" : "data/mouse_db",
+    "HUMAN_DB" : "data/human_db"
+}
+

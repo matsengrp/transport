@@ -10,13 +10,13 @@ from Bio.SeqRecord import SeqRecord
 import numpy as np
 import pandas as pd
 
-from common.params import CSV_OUTPUT_DIRNAME, DIRECTORIES, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
+from config import CONFIG
 
 class TCRClusterer():
-    seg_csv_file = os.path.join(CSV_OUTPUT_DIRNAME, "seg.csv")
+    seg_csv_file = os.path.join(CONFIG["CSV_OUTPUT"], "seg.csv")
 
-    def __init__(self, self_distance_matrix, score_dict, seg_csv_outfile=None, cluster_label='tmp', outdir=DIRECTORIES[TMP_OUTPUT]):
+    def __init__(self, self_distance_matrix, score_dict, seg_csv_outfile=None, cluster_label='tmp', outdir=CONFIG["TMP_OUTPUT"]):
         if seg_csv_outfile is None:
             seg_csv_outfile = self.seg_csv_file
 
@@ -56,7 +56,7 @@ class TCRClusterer():
         
             records = [SeqRecord(Seq(cdr3), id=tcr) for tcr, cdr3 in zip(neighborhood_tcrs, neighborhood_cdr3s)]
 
-            alignment_infile = os.path.join(DIRECTORIES[TMP_OUTPUT], "cluster_cdr3s.fasta")
+            alignment_infile = os.path.join(CONFIG["TMP_OUTPUT"], "cluster_cdr3s.fasta")
 
             with open(alignment_infile, "w") as output_handle:
                 SeqIO.write(records, output_handle, "fasta")

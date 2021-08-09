@@ -7,30 +7,27 @@ import pandas as pd
 
 sys.path.append('.')
 
-from common.params import DIRECTORIES, TMP_OUTPUT
 from python.tcr_dist import TCRDist
+from config import CONFIG
 
 def get_cluster_memberships(query_file, cluster_dict):
     centroid_file = "centroid.tcrs"
     np.savetxt(
-        os.path.join(DIRECTORIES[TMP_OUTPUT], centroid_file), 
+        os.path.join(CONFIG["TMP_OUTPUT"], centroid_file), 
         [cluster_dict['centroid']], 
         fmt="%s"
     )
     dist_mat = TCRDist(species="mouse").get_raw_distance_matrix(
         query_file, 
-        centroid_file
+        os.path.join(CONFIG["TMP_OUTPUT"], centroid_file), 
+        output_dir=""
     )
     return list(dist_mat[:, 0] < cluster_dict['radius'])
 
 if __name__ == "__main__":
-    file_dir = '/fh/fast/matsen_e/bolson2/transport/iel_data/iels_tcrs_by_mouse/'
-
-    hmm_output_dir = "output/hmm/cd4_dn"
-
-    results_dir = "output/iel_clusters"
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
+    file_dir = CONFIG["IEL_DATA_DIR"] 
+    hmm_output_dir = CONFIG["HMM_CD4_DN_OUTPUT"]
+    results_dir = CONFIG["IEL_CLUSTER_OUTPUT"]
 
     dn_subjects = [f"DN_{x}" for x in range(1, 23 + 1)]
     cd4_subjects = [f"CD4_{x}" for x in range(1, 23 + 1)]
