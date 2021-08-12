@@ -88,7 +88,6 @@ for(group in groups) {
 
     }
 }
-print("HEEEEEEEEEEEEEEEEEEEEEEY")
 prevalence_df[["motif"]] <- factor(prevalence_df[["motif"]], levels=motif_levels)
 prevalence_df[["group"]] <- factor(prevalence_df[["group"]], levels=c("DN", "CD4", "CD8"))
 
