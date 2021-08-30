@@ -7,7 +7,7 @@ library(RcmdrMisc)
 library(reshape2)
 library(rjson)
 
-source("R/plot_utils.R")
+#source("R/plot_utils.R")
 
 lm_eqn <- function(df){
     m <- summarySandwich(lm(bg_z_score ~ rand_z_score, df));

@@ -2,7 +2,7 @@ library(rjson)
 library(dplyr)
 library(reshape2)
 
-source("R/plot_utils.R")
+# source("R/plot_utils.R")
 
 json_dir = CONFIG$JSON_OUTPUT
 dist_mats_dir = CONFIG$DIST_MATRICES_OUTPUT

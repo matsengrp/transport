@@ -8,7 +8,7 @@ import numpy as np
 import ntpath
 
 sys.path.append(".")
-from common.params import DIRECTORIES, HMM_OUTPUT
+# from common.params import DIRECTORIES, HMM_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.tcr_multi_clusterer import TCRMultiClusterer
 from config import CONFIG

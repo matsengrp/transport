@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
-source("R/plot_utils.R")
+# source("R/plot_utils.R")
 dir <- CONFIG$HMM_CD4_DN_OUTPUT
 
 clusters <- 1:3 %>% sapply(function(x) { paste("cluster", x, sep="_") })

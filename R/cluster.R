@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
-source("R/plot_utils.R")
+# source("R/plot_utils.R")
 
 cluster_df_dir <- CONFIG["IEL_CLUSTER_OUTPUT"]
 
