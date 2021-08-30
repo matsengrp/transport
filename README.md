@@ -82,7 +82,7 @@ in [analyses/README.\m\d](analyses/README.md).
 ### Code Description
 The main code for the transport package lies in the `python` directory, which contains various modules.
 The core of the package lies in the `TCRScorer` module, which takes two files `file_1` and `file_2` of TCR sequences as input, and computes the loneliness scores (called "enrichments" in this repo) of all TCRs in the repertoire corresponding to `file_2`.
-This is then called by `TCRClusterer` to compute the loneliness cluster of TCRs, which in turn is called by `TCRMultiClusterer` to compute the top _k_ clusters for some specified _k_.
+This is then called by `TCRClusterer` to compute the loneliest cluster of TCRs, which in turn is called by `TCRMultiClusterer` to compute the top _k_ clusters for some specified _k_.
 Thus, a generic analysis will suffice to call `TCRMultiClusterer` on two sequence files to obtain cluster inferences along with various files that include auxiliary information for each cluster.
 There is also a `RandomizationTest` module which can be used to obtain significance estimates for the loneliness scores, although this has not yet been incorporated into `TCRScorer` or `TCRMultiClusterer`.
 
