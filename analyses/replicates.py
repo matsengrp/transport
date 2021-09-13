@@ -38,7 +38,7 @@ neighbor_cutoff_radii = [i + 8.5 for i in range(0, 100, 5)] # distance at which 
 scores_by_cutoff_dict= defaultdict(dict)
 z_score_dict = defaultdict(dict)
 p_val_dict = defaultdict(dict)
-for i, bg_repfile in bg_repfiles:
+for bg_repfile in bg_repfiles:
     obs_scorer = TCRScorer(file_1=cd4_file, file_2=bg_repfile, species="mouse")
     obs_scores = obs_scorer.enrichment_dict.values()
 

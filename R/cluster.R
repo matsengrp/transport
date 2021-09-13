@@ -4,6 +4,8 @@ library(ggplot2)
 library(RColorBrewer)
 # source("R/plot_utils.R")
 
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
 cluster_df_dir <- CONFIG["IEL_CLUSTER_OUTPUT"]
 
 if(!exists("fg_dat")) {

@@ -3,6 +3,9 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+
 info_to_subject <- function(info) {
     split_info <- info %>% strsplit(split=" ") %>% unlist
     return(split_info[2] %>% gsub(pattern=",", replacement=""))

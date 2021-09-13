@@ -2,12 +2,14 @@ library(rjson)
 library(dplyr)
 library(reshape2)
 
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
 # source("R/plot_utils.R")
 
 json_dir = CONFIG$JSON_OUTPUT
 dist_mats_dir = CONFIG$DIST_MATRICES_OUTPUT
-projection_method <- "MDS"
-dir.create(projection_method)
+#projection_method <- "MDS"
+#dir.create(projection_method)
 
 if(!exists("dat")) {
     results <- list("results"=fromJSON(file=file.path(json_dir, "empirical_fg_bg_nbhd_stats.json")))
@@ -50,9 +52,9 @@ for(subject in subjects) {
     )
 }
 
-mds_dats <- {}
-for(subject in subjects) {
-    mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
-                                          projection_method=projection_method, 
-                                          k=2)
-}
+#mds_dats <- {}
+#for(subject in subjects) {
+#    mds_dats[[subject]] <- get_projection(dist_mats[[subject]], 
+#                                          projection_method=projection_method, 
+#                                          k=2)
+#}

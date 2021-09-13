@@ -7,6 +7,8 @@ library(RcmdrMisc)
 library(reshape2)
 library(rjson)
 
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
 #source("R/plot_utils.R")
 
 lm_eqn <- function(df){

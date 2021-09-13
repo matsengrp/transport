@@ -5,6 +5,7 @@
 
     "OUTPUT" : "output", 
     "HMM_OUTPUT": "output/hmm",
+    "MOTIF_OUTPUT": "output/motif",
     "HMM_CD4_DN_OUTPUT" : "output/hmm/cd4_dn",
     "JSON_OUTPUT": "output/json",
     "CSV_OUTPUT": "output/csv",

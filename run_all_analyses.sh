@@ -6,10 +6,10 @@ rm -rf output
 
 # Computes fg and bg loneliness scores, and replicate z-scores
 python analyses/replicates.py  
-
-# Computes the 3 large combined repertoires and the top lonely clusters
+#
+## Computes the 3 large combined repertoires and the top lonely clusters
 python analyses/combined_replicates.py  
-
+#
 python analyses/cluster_iels.py  # Computes cluster memberships of all DN, CD4, and CD8 repertoires based on the 3 OT clusters identified by analyses/combined_replicates.py
 python analyses/z_scores.py  # Computes randomization z-scores
 python analyses/motif.py  # Computes clusters for differenct radii over IEL repertoires, to be used in R/motif.R
