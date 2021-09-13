@@ -17,8 +17,8 @@
     "YFV_OUTPUT" : "output/yellow_fever",
     
     "IEL_DATA_DIR": "data/iels_tcrs_by_mouse/",
-    "YFV_DATA_DIR" : "data/yellow_fever/",
-    "YFV_DATA_DIR_TOP1000" : "data/yellow_fever/top1000/",
+    "YFV_DATA_DIR" : "data/yellow_fever",
+    "YFV_DATA_DIR_TOP1000" : "data/yellow_fever/top1000",
 
     "TCRDIST_EXE" : "pubtcrs/bin/tcrdists",
     

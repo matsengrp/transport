@@ -110,7 +110,7 @@ subjects <- c(
 
 subject_dfs <- {}
 for(subject in subjects) {
-    subject_df <- fread(file.path("data/yfv", label_to_dataset(subject)), header=F)
+    subject_df <- fread(file.path(CONFIG$YFV_DATA_DIR_TOP1000, label_to_dataset(subject)), header=F)
     names(subject_df) <- c("v_gene", "cdr3")
     subject_df[["tcr"]] <- paste(subject_df[["v_gene"]], subject_df[["cdr3"]], sep=",")
     subject_df[["v_gene_no_allele"]] <- subject_df[["v_gene"]] %>%
@@ -129,7 +129,7 @@ cluster_df <- matrix(NA, nrow=0, ncol=length(cluster_cols)) %>%
 
 clusters <- 1:10 %>% paste("cluster", ., sep="_")
 for(s in subjects) {
-    dir <- file.path("output/hmm", s)
+    dir <- file.path(CONFIG$HMM_OUTPUT, s)
     for(cluster in clusters) {
         tcrs <- fread(file.path(dir, cluster, "cluster_tcrs.csv"), header=T)
         v_genes <- tcrs[["tcr"]] %>% sapply(function(x) { strsplit(x, ",") %>% unlist %>% first })
