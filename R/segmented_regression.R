@@ -6,7 +6,9 @@ library(rjson)
 library(segmented)
 library(viridis)
 
-source("R/plot_utils.R")
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+# source("R/plot_utils.R")
 
 default_bp <- 75
 

@@ -4,10 +4,10 @@ import sys
 import numpy as np
 
 sys.path.append(os.getcwd())
-from common.params import DIRECTORIES, TMP_OUTPUT
 from python.hmmer_manager import HMMerManager
 from python.tcr_clusterer import TCRClusterer
 from python.tcr_scorer import TCRScorer
+from config import CONFIG
 
 class TCRMultiClusterer():
     def __init__(self, file_1, file_2, species, outdir, max_cluster_count=10):
@@ -36,7 +36,7 @@ class TCRMultiClusterer():
             outdir=cluster_outdir
         )
         cluster = 2
-        sub_file = os.path.join(DIRECTORIES[TMP_OUTPUT], 'sub_rep.csv')
+        sub_file = os.path.join(CONFIG["TMP_OUTPUT"], 'sub_rep.csv')
         while cluster <= max_cluster_count:
             np.savetxt(sub_file, sub_repertoire_tcrs, fmt="%s")
             score_dict = {k: initial_score_dict[k] for k in sub_repertoire_tcrs}

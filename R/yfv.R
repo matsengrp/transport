@@ -3,6 +3,9 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+
 info_to_subject <- function(info) {
     split_info <- info %>% strsplit(split=" ") %>% unlist
     return(split_info[2] %>% gsub(pattern=",", replacement=""))
@@ -48,7 +51,7 @@ label_to_info <- function(label) {
     return(info)
 }
 
-val_df <- fread("R/data/validation.txt")
+val_df <- fread("data/validation/validation.txt")
 val_df[["v_gene"]] <- val_df[["v.segm"]] %>%
     sapply(discard_extra_gene_calls)
 val_df[["tcr"]] <- paste(val_df[["v_gene"]], val_df[["cdr3"]], sep=",")
@@ -68,7 +71,7 @@ cmv_df[["tcr_no_allele"]] <- paste(cmv_df[["v_gene_no_allele"]],
                                        sep=","
                                       )
 
-pog_df <- fread("R/data/pogorelyy_tcrs.txt")
+pog_df <- fread("data/validation/pogorelyy_tcrs.txt")
 pog_df[["tcr"]] <- paste(pog_df[["bestVGene"]], pog_df[["CDR3.amino.acid.sequence"]], sep=",")
 
 
@@ -107,7 +110,7 @@ subjects <- c(
 
 subject_dfs <- {}
 for(subject in subjects) {
-    subject_df <- fread(file.path("data/yfv", label_to_dataset(subject)), header=F)
+    subject_df <- fread(file.path(CONFIG$YFV_DATA_DIR_TOP1000, label_to_dataset(subject)), header=F)
     names(subject_df) <- c("v_gene", "cdr3")
     subject_df[["tcr"]] <- paste(subject_df[["v_gene"]], subject_df[["cdr3"]], sep=",")
     subject_df[["v_gene_no_allele"]] <- subject_df[["v_gene"]] %>%
@@ -126,7 +129,7 @@ cluster_df <- matrix(NA, nrow=0, ncol=length(cluster_cols)) %>%
 
 clusters <- 1:10 %>% paste("cluster", ., sep="_")
 for(s in subjects) {
-    dir <- file.path("output/hmm", s)
+    dir <- file.path(CONFIG$HMM_OUTPUT, s)
     for(cluster in clusters) {
         tcrs <- fread(file.path(dir, cluster, "cluster_tcrs.csv"), header=T)
         v_genes <- tcrs[["tcr"]] %>% sapply(function(x) { strsplit(x, ",") %>% unlist %>% first })
@@ -211,7 +214,7 @@ common_hits_without_subject[["cluster"]] <- common_hits_without_subject[["cluste
     sapply(gsub, pattern="cluster_", replacement="") %>%
     factor(levels=1:length(clusters))
 
-plot_dir <- "output/yfv"
+plot_dir <- CONFIG$YFV_OUTPUT
 p_hits_no_cluster_2 <- common_hits_without_cluster[cluster_cutoff == 2, ] %>%
     ggplot(aes(x=subject, y=hit_rate, fill=subject)) +
     geom_bar(stat="identity") +

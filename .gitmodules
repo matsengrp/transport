@@ -1,0 +1,3 @@
+[submodule "pubtcrs"]
+	path = pubtcrs
+	url = git@github.com:phbradley/pubtcrs.git

@@ -6,31 +6,34 @@ library(rjson)
 library(segmented)
 library(viridis)
 
-source("R/plot_utils.R")
+#source("R/load_score_datasets.R")
+
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+csv_dir <- CONFIG$CSV_OUTPUT
+json_dir <- CONFIG$JSON_OUTPUT
+
+motif_dir <- CONFIG$MOTIF_OUTPUT
 
 get_breakpoint_from_model <- function(seg_fit) {
     return(seg_fit[["psi"]][2])
 }
-
-csv_dir <- "output/csv"
-json_dir <- "output/json"
-
-motif_dir <- "output/motif"
-e_value_motif_dir <- "output/motif/e_values"
-dir.create(motif_dir)
-dir.create(e_value_motif_dir)
-
+json_object <- fromJSON(file=file.path(json_dir, "motif.json"))
 
 motif_dat <- fread(file.path(csv_dir, "motif.csv"))
-e_value_dat <- fread(file.path(csv_dir, "ida_e_value.csv"))
-
 score_results <- list("results"=fromJSON(file=file.path(json_dir, "empirical_fg_bg_nbhd_stats.json"))) 
 
+
+
 breakpoints <- {}
+cluster_tcrs <- {}
 pdf(file.path(motif_dir, "enrichment_by_radius.pdf"), width=10, height=12)
 par(mfrow=c(6, 4))
 motif_dat[["subject"]] <- motif_dat[["subject"]] %>% sapply(gsub, pattern=".tcrs", replacement="")
+subjects <- motif_dat[["subject"]] %>% unique
+radii <- motif_dat[["radius"]] %>% unique
 # Enforce an ordering for the subjects for plotting
+
 subjects <- factor(subjects, levels=1:23 %>% paste("DN", ., "B", sep="_"))
 for(tmp_subject in subjects[order(subjects)]) {
     d_sub <- motif_dat[motif_dat$subject == tmp_subject, ]

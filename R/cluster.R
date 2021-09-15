@@ -2,8 +2,11 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
+# source("R/plot_utils.R")
 
-cluster_df_dir <- "output/iel_clusters"
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+cluster_df_dir <- CONFIG["IEL_CLUSTER_OUTPUT"]
 
 if(!exists("fg_dat")) {
     source("R/load_score_datasets.R")
@@ -87,11 +90,10 @@ for(group in groups) {
 
     }
 }
-
 prevalence_df[["motif"]] <- factor(prevalence_df[["motif"]], levels=motif_levels)
 prevalence_df[["group"]] <- factor(prevalence_df[["group"]], levels=c("DN", "CD4", "CD8"))
 
-outdir <- "output/iel_clusters/motif_metrics"
+outdir <- "output/cluster_iels/motif_metrics"
 dir.create(outdir)
 
 motif_colors <- brewer.pal(4, "Dark2")

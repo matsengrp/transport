@@ -2,16 +2,18 @@ import os
 
 import numpy as np
 import pandas as pd
+from config import CONFIG
 
 class TCRDist():
-    exe = 'bin/tcrdists'
+    exe = CONFIG["TCRDIST_EXE"]
 
     def __init__(self, species):
         self.species = species
         if self.species == "mouse":
-            self.db = "/loc/no-backup/pbradley/share/pot_data/fake_pubtcrs_db_mouse"
+            #self.db = "pot_data/fake_pubtcrs_db_mouse"
+            self.db = CONFIG["MOUSE_DB"]
         elif self.species == "human":
-            self.db = "/loc/no-backup/pbradley/share/pot_data/db"
+            self.db = CONFIG["HUMAN_DB"]
         else:
             raise Exception("Unsupported species (can only be mouse or human)")
 
@@ -22,7 +24,7 @@ class TCRDist():
         as_pandas_dataframe=False,
         index_column=None,
         verbose=True,
-        output_dir="tmp_output",
+        output_dir=CONFIG["TMP_OUTPUT"],
     ):
     
         cmd = '{} -i {} -j {} -d {} --terse'.format(

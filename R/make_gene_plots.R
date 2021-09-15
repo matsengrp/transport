@@ -2,8 +2,10 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
-
-dir <- "output/hmm/cd4_dn"
+# source("R/plot_utils.R")
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+dir <- CONFIG$HMM_CD4_DN_OUTPUT
 
 clusters <- 1:3 %>% sapply(function(x) { paste("cluster", x, sep="_") })
 for(cluster in clusters) {

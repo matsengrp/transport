@@ -6,11 +6,11 @@ from statsmodels.distributions.empirical_distribution import ECDF
 import numpy as np
 import pandas as pd
 
-from common.params import DIRECTORIES, TMP_OUTPUT
+from config import CONFIG
 from python.tcr_scorer import TCRScorer
 
 class RandomizationTest():
-    output_dir = DIRECTORIES[TMP_OUTPUT]
+    output_dir = CONFIG["TMP_OUTPUT"]
     trial_1_file = os.path.join(output_dir, "trial_1.csv")
     trial_2_file = os.path.join(output_dir, "trial_2.csv")
     

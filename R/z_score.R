@@ -7,7 +7,9 @@ library(RcmdrMisc)
 library(reshape2)
 library(rjson)
 
-source("R/plot_utils.R")
+library("rjson")
+CONFIG <- fromJSON(file = "config.json")
+#source("R/plot_utils.R")
 
 lm_eqn <- function(df){
     m <- summarySandwich(lm(bg_z_score ~ rand_z_score, df));
@@ -19,9 +21,8 @@ lm_eqn <- function(df){
 }
 
 
-json_dir = "output/json"
-z_score_dir = "output/z_score"
-dir.create(z_score_dir)
+json_dir = CONFIG$JSON_OUTPUT
+z_score_dir = CONFIG$ZSCORE_OUTPUT
 
 dn_subject <- 'DN_15_B'
 cd4_subject <- 'CD4_17_B'
@@ -36,10 +37,8 @@ cluster_names <- list(
                       "5"="N/A"
                      )
 
-cluster_df <- fread(file.path("output/json", gsub(cd4_subject, pattern="_B", replacement=""), "cluster_df.csv"))
+cluster_df <- fread(file.path(json_dir, gsub(cd4_subject, pattern="_B", replacement=""), "cluster_df.csv"))
 cluster_df[["motif"]] <- factor(cluster_df[["motif"]], levels=motif_levels)
-#cluster_df[cluster_df[["cluster"]] > 5, ][["cluster"]] <- 0
-#cluster_df[cluster_df[["cluster"]] == 0, ][["cluster"]] <- "None"
 cluster_df[["cluster"]] <- cluster_df[["cluster"]] %>%
     sapply(function(x) { cluster_names[[toString(x)]] })
 
@@ -75,15 +74,7 @@ names(fg_df)[which(names(fg_df) == 'z_score')] <- 'fg_z_score'
 
 wide_df <- bg_df %>%
     merge(rand_df, by='tcr')
-wide_df[['label']] <- wide_df[['tcr']] %>%
-    sapply(get_motif_label, subject=dn_subject, e_value_threshold=1e-8)
-tall_df[['label']] <- tall_df[['tcr']] %>%
-    sapply(get_motif_label, subject=dn_subject, e_value_threshold=1e-8)
 
-
-wide_df[["label"]] <- factor(wide_df[["label"]], levels=c("N/A", "Revere", "Tremont", "Ida"))
-wide_df[["label"]] <- cluster_df[["cluster"]] %>% sapply(function(x) { paste("cluster", x) })
-tall_df[["label"]] <- wide_df[["label"]] # cluster_df[["cluster"]] %>% sapply(function(x) { paste("cluster", x) })
 p_scatter <- wide_df %>%
     ggplot() +
     geom_point(aes(x=rand_z_score, y=bg_z_score, color=cluster, shape=cluster), alpha=0.6) +
@@ -92,7 +83,7 @@ p_scatter <- wide_df %>%
     geom_text(x=-1, y=8, label=lm_eqn(wide_df), parse = TRUE) +
     xlab("Randomization z-score") +
     ylab("Replicate z-score")
-ggsave(file.path(z_score_dir, gsub(cd4_subject, pattern="_B", replacement=""), "z_score_scatterplot.pdf"), width=8, height=6)
+ggsave(file.path(z_score_dir, "z_score_scatterplot.pdf"), width=8, height=6)
 
 
 tall_df[tall_df[["group"]] == "background", ][["group"]] <- "replicate"
@@ -102,4 +93,4 @@ p_densities <- tall_df[tall_df[['group']] != 'foreground', ] %>%
     xlim(-5, 12) +
     theme_minimal() +
     geom_density()
-ggsave(file.path(z_score_dir, gsub(cd4_subject, pattern="_B", replacement=""), "z_score_densities.pdf"), width=8, height=6)
+ggsave(file.path(z_score_dir, "z_score_densities.pdf"), width=8, height=6)
