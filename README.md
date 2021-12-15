@@ -3,8 +3,8 @@
 Branden J Olson, Stefan A Schattgen, Paul G Thomas, Philip Bradley, Frederick A Matsen IV
 
 This repository contains the necessary dependencies and in-house code used to produce all analyses and figures as seen in the [Manuscript](https://github.com/matsengrp/transport-tex).
-Below we describe how the installation of dependencies 
-and provide instructions for one to reproduce all analyses. 
+Below we describe how the installation of dependencies
+and provide instructions for one to reproduce all analyses.
 
 ## Installation and Dependencies
 
@@ -17,7 +17,7 @@ git clone --recurse-submodules https://github.com/matsengrp/transport.git
 2. Next, you'll want to build the TCRDist executable
 
 ```bash
-./build-pudtcrs.sh
+./build-pubtcrs.sh
 ```
 
 3. Set up a proper python environment.
@@ -55,10 +55,10 @@ with the order specified in [run\_all\_analyses.sh](run_all_analyses.sh).
 The structure for which output is made
 depends on [config.json](config.json).
 Here, you may change where output get written to, as well as tweak common parameters
-used for the manuscript. 
+used for the manuscript.
 
 Once the analyses is run, you may explore the output directories to view various
-raw data files and plots. 
+raw data files and plots.
 For example, with the current configurations running
 ```
 » bash run_all_analyses.sh
@@ -91,3 +91,4 @@ These scripts usually write their results to a location within the root-level `o
 
 The `R` directory contains scripts used to post-process the results from the `analyses` scripts, and generate plots.
 These scripts also usually write their results to a location within `output`.
+build-pubtcrs.sh
