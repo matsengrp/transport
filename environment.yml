@@ -11,6 +11,7 @@ dependencies:
   - numpy
   - pandas
   - scipy
+  - requests
   - pip:
     - pygtrie==2.4.2
     - seqmagick==0.8.4
