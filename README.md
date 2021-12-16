@@ -24,7 +24,8 @@ git clone --recurse-submodules https://github.com/matsengrp/transport.git
 
 We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. You may use the spec-file.txt to create a mirror environment that currently works
 ```
-conda create --name transport --file spec-file.txt
+# will name the conda env 'transport'
+conda env create --file environment.yml
 ```
 
 Other Requirements - running the code requires a few other dependencies called upon by our scripts

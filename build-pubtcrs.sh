@@ -5,6 +5,6 @@ cd pubtcrs/bin
 wget https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/${LIB}.tar.gz
 gunzip ${LIB}.tar.gz && tar -xf ${LIB}.tar
 cd ../ && make BOOSTDIR=bin/${LIB} && cd ../
-ln -s ${PWD}/pubtcrs/bin/tcrdists ${PWD}/manuscript-analysis/python/
+ln -s ${PWD}/pubtcrs/bin/tcrdists ${PWD}/python/
 
 
