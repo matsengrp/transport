@@ -1,14 +1,19 @@
-# Comparing TCR repertoires via optimal transport
+# transport
 
-Branden J Olson, Stefan A Schattgen, Paul G Thomas, Philip Bradley, Frederick A Matsen IV
+This repository accompanies the manuscript _Comparing TCR repertoires via
+optimal transport_, by Olson, Schattgen, Thomas, Bradley, and Matsen.
+It provides instructions to reproduce the analyses.
 
-This repository contains the necessary dependencies and in-house code used to produce all analyses and figures as seen in the [Manuscript](https://github.com/matsengrp/transport-tex).
-Below we describe how the installation of dependencies
-and provide instructions for one to reproduce all analyses.
+Note that this repository contains data generously shared by our collaborators
+and described in the manuscript _Intestinal Intraepithelial Lymphocyte
+Repertoires are Imprinted Clonal Structures Selected for MHC Reactivity_ by
+Schattgen, Crawford, Van de Velde, Chu, Mazmanian, Bradley, and Thomas.
+Please cite that paper if you use these data.
+
 
 ## Installation and Dependencies
 
-1. First, clone the repository and it's sub modules
+1. First, clone the repository and its sub modules
 
 ```bash
 git clone --recurse-submodules https://github.com/matsengrp/transport.git
@@ -34,8 +39,8 @@ Other Requirements - running the code requires a few other dependencies called u
     additionally, you will need these third party packages for R:
     A. `install.packages(c("estimatr", "RcmdrMisc"))`
 
-2. HMMER >= 3.2.1 #http://hmmer.org/
-3. mafft v >= 7.453
+2. HMMER >= 3.2.1
+3. mafft >= 7.453
 
 On the Fred Hutch `rhino` servers, these modules are loaded like so:
 
@@ -61,7 +66,7 @@ Once the analyses is run, you may explore the output directories to view various
 raw data files and plots.
 For example, with the current configurations running
 ```
-» bash run_all_analyses.sh
+bash run_all_analyses.sh
 ```
 Taking roughly 30-40 minutes on a single core, this will produce a directory `output/` with the following structure:
 ```
@@ -91,4 +96,3 @@ These scripts usually write their results to a location within the root-level `o
 
 The `R` directory contains scripts used to post-process the results from the `analyses` scripts, and generate plots.
 These scripts also usually write their results to a location within `output`.
-build-pubtcrs.sh
