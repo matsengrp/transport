@@ -5,3 +5,4 @@ _ignore
 output
 *.pyc
 tmp_output
+python/tcrdists

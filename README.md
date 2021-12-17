@@ -32,8 +32,7 @@ Other Requirements - running the code requires a few other dependencies called u
 
 1. R >= 4.0.3
     additionally, you will need these third party packages for R:
-    A. `install.package("estimatr")
-    B. `install.package("RcmdrMisc")`
+    A. `install.packages(c("estimatr", "RcmdrMisc"))`
 
 2. HMMER >= 3.2.1 #http://hmmer.org/
 3. mafft v >= 7.453
