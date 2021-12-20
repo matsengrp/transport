@@ -36,12 +36,10 @@ conda env create --file environment.yml
 
 4. Install other requirements
 
-1. R >= 4.0.3
-    additionally, you will need these third party packages for R:
-    A. `install.packages(c("estimatr", "RcmdrMisc", "rjson", "segmented"))`
-
-2. HMMER >= 3.2.1
-3. mafft >= 7.453
+    * R >= 4.0.3 with additional packages:
+        `install.packages(c("estimatr", "RcmdrMisc", "rjson", "segmented"))`
+    * HMMER >= 3.2.1
+    * mafft >= 7.453
 
 On the Fred Hutch `rhino` servers, these modules are loaded like so:
 
