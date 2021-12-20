@@ -22,18 +22,19 @@ git clone --recurse-submodules https://github.com/matsengrp/transport.git
 2. Next, you'll want to build the TCRDist executable
 
 ```bash
+cd transport
 ./build-pubtcrs.sh
 ```
 
-3. Set up a proper python environment.
+3. Set up a proper Python environment
 
-We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages. You may use the spec-file.txt to create a mirror environment that currently works
-```
+We recommend using [conda](https://docs.conda.io/en/latest/) for installation of python packages:
+```bash
 # will name the conda env 'transport'
 conda env create --file environment.yml
 ```
 
-Other Requirements - running the code requires a few other dependencies called upon by our scripts
+4. Install other requirements
 
 1. R >= 4.0.3
     additionally, you will need these third party packages for R:
@@ -44,7 +45,7 @@ Other Requirements - running the code requires a few other dependencies called u
 
 On the Fred Hutch `rhino` servers, these modules are loaded like so:
 
-```
+```bash
 module load R/4.0.3-foss-2020b
 module load RepeatMasker/4.0.8-foss-2018b-Perl-5.28.0-HMMER
 module load MAFFT/7.453-GCC-8.3.0-with-extensions
