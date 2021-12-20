@@ -37,7 +37,7 @@ Other Requirements - running the code requires a few other dependencies called u
 
 1. R >= 4.0.3
     additionally, you will need these third party packages for R:
-    A. `install.packages(c("estimatr", "RcmdrMisc"))`
+    A. `install.packages(c("estimatr", "RcmdrMisc", "rjson", "segmented"))`
 
 2. HMMER >= 3.2.1
 3. mafft >= 7.453

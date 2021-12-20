@@ -28,6 +28,6 @@ for(cluster in clusters) {
         ylab("Frequency") +
         theme_minimal() +
         theme(legend.title = element_blank(), text = element_text(size=20)) +
-        scale_fill_manual(values=colors) +
+        scale_fill_manual(values=colors)
     ggsave(file.path(cluster_dir, "v_genes.pdf"), width=3, height=6)
 }
