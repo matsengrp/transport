@@ -80,7 +80,7 @@ output
 └── z_score
 ```
 These output here is described in some detail along with the description of each script
-in [analyses/README.\m\d](analyses/README.md).
+in [analyses/README.md](analyses/README.md).
 
 
 ### Code Description
