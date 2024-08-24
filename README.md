@@ -1,7 +1,8 @@
 # transport
 
-This repository accompanies the manuscript _Comparing TCR repertoires via
-optimal transport_, by Olson, Schattgen, Thomas, Bradley, and Matsen.
+This repository accompanies the manuscript 
+[_Comparing TCR repertoires via optimal transport_](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1010681), 
+by Olson, Schattgen, Thomas, Bradley, and Matsen.
 It provides instructions to reproduce the analyses.
 
 Note that this repository contains data generously shared by our collaborators
@@ -10,6 +11,10 @@ Repertoires are Imprinted Clonal Structures Selected for MHC Reactivity_ by
 Schattgen, Crawford, Van de Velde, Chu, Mazmanian, Bradley, and Thomas.
 Please cite that paper if you use these data.
 
+**This package is no longer under active development.**
+The [IRTransport](https://github.com/zacmon/ir_transport) package provides an 
+updated, convenient, more efficient, and flexible recoding of the `transport` 
+package.
 
 ## Installation and Dependencies
 
